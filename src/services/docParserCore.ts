@@ -56,6 +56,10 @@ function collectUntil(start: Element, stop: Element | null): Node[] {
   return nodes;
 }
 
+function isH2Element(node: Node): node is Element {
+  return node.nodeType === node.ELEMENT_NODE && 'tagName' in node && node.tagName === 'H2';
+}
+
 function buildSubsection(h2: Element, nextStop: Element | null, sanitize: Sanitize): Subsection {
   const nodes = collectUntil(h2, nextStop);
   const rawHtml = serialise(nodes);
@@ -67,9 +71,7 @@ function buildSubsection(h2: Element, nextStop: Element | null, sanitize: Saniti
 
 function buildSection(h1: Element, nextH1: Element | null, sanitize: Sanitize): Section {
   const sectionNodes = collectUntil(h1, nextH1);
-  const h2s = sectionNodes.filter(
-    (n): n is Element => n instanceof Element && n.tagName === 'H2',
-  );
+  const h2s = sectionNodes.filter(isH2Element);
 
   if (h2s.length === 0) {
     const rawHtml = serialise(sectionNodes);
