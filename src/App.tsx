@@ -162,8 +162,6 @@ export default function App(): React.JSX.Element {
     return (
       <SectionView
         section={section}
-        sectionIndex={state.currentSection}
-        totalSections={state.doc.sections.length}
         onBack={handleBack}
         onHome={handleHome}
         onNext={handleNext}

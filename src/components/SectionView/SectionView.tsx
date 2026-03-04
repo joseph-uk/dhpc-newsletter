@@ -4,8 +4,6 @@ import styles from './SectionView.module.css';
 
 interface SectionViewProps {
   readonly section: Section;
-  readonly sectionIndex: number;
-  readonly totalSections: number;
   readonly onBack: () => void;
   readonly onHome: () => void;
   readonly onNext: () => void;
@@ -13,8 +11,6 @@ interface SectionViewProps {
 
 export function SectionView({
   section,
-  sectionIndex,
-  totalSections,
   onBack,
   onHome,
   onNext,
@@ -37,13 +33,7 @@ export function SectionView({
           />
         </section>
       ))}
-      <NavigationControls
-        onBack={onBack}
-        onHome={onHome}
-        onNext={onNext}
-        isFirst={sectionIndex === 0}
-        isLast={sectionIndex === totalSections - 1}
-      />
+      <NavigationControls onBack={onBack} onHome={onHome} onNext={onNext} />
     </article>
   );
 }

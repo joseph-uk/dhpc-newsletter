@@ -4,23 +4,18 @@ interface NavigationControlsProps {
   readonly onBack: () => void;
   readonly onHome: () => void;
   readonly onNext: () => void;
-  readonly isFirst: boolean;
-  readonly isLast: boolean;
 }
 
 export function NavigationControls({
   onBack,
   onHome,
   onNext,
-  isFirst,
-  isLast,
 }: NavigationControlsProps): React.JSX.Element {
   return (
     <nav className={styles['nav']} aria-label="Section navigation">
       <button
         className={styles['button']}
         onClick={onBack}
-        disabled={isFirst}
         type="button"
         aria-label="Previous section"
       >
@@ -37,7 +32,6 @@ export function NavigationControls({
       <button
         className={styles['button']}
         onClick={onNext}
-        disabled={isLast}
         type="button"
         aria-label="Next section"
       >
