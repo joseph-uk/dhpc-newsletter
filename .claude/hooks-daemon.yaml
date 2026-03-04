@@ -146,7 +146,7 @@ handlers:
       # Docs: docs/guides/handlers/markdown_organization.md
       options:
         track_plans_in_project: "CLAUDE/Plan"  # Enable plan tracking
-        plan_workflow_docs: null      # Optional: path to workflow doc
+        plan_workflow_docs: "CLAUDE/PlanWorkflow.md"
         #
         # Monorepo support: regex patterns matching sub-project root directories.
         # Sub-projects get the same organization rules as the root project.

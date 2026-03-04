@@ -1,7 +1,7 @@
 ---
 id: "00001"
 title: "Rebuild Skywords as React/TypeScript SPA with GitHub Pages deploy"
-status: active
+status: in-progress
 created: 2026-03-04
 updated: 2026-03-04
 author: "Claude"
@@ -90,164 +90,153 @@ User opens page
 
 ---
 
+## Team Execution Model
+
+Orchestrated by a lead agent (no code edits). Work agents execute in worktrees.
+
+### Dependency Graph
+
+```
+Task 1: scaffolder (main branch)
+    │
+    ├──► Task 2: ci-cd       (worktree, parallel)
+    │
+    └──► Task 3: services    (worktree, parallel)
+              │
+              ▼
+         Task 4: ui          (worktree, after merge of 2+3)
+              │
+              ▼
+         Task 5: qa          (worktree, after merge of 4)
+```
+
+### Agent Assignments
+
+| Task | Agent | Worktree | Phases | Model |
+|------|-------|----------|--------|-------|
+| 1. Project scaffolding | `scaffolder` | no (main) | Phase 0 | sonnet |
+| 2. CI/CD pipeline | `ci-cd` | yes | Phase 1 | haiku |
+| 3. Types + services | `services` | yes | Phase 2 + 3 | sonnet |
+| 4. UI + styling | `ui` | yes | Phase 4 + 5 + 6 + 7 | sonnet |
+| 5. QA + docs | `qa` | yes | Phase 8 + 9 | sonnet |
+
+### Reference Documents (in this folder)
+
+- [ARCHITECTURE.md](./ARCHITECTURE.md) — data model, service layer, Vite config, GH Actions workflow
+- [COMPONENTS.md](./COMPONENTS.md) — full component tree with TypeScript props
+- [CURRENT-SYSTEM.md](./CURRENT-SYSTEM.md) — current site JS/CSS/HTML source (reference for behaviour matching)
+
+---
+
 ## Task Breakdown
 
-### Phase 0 — Repository & Tooling Setup
+### Task 1 — Project Scaffolding (agent: `scaffolder`)
+
+**Runs on:** main branch (foundation for all other work)
+**Blocked by:** nothing
+**Blocks:** Tasks 2, 3
 
 - [ ] Initialise Vite + React + TypeScript project in repo root
   - `npm create vite@latest . -- --template react-ts`
-  - Accept overwrite of existing files (only `.git` and `CLAUDE/` present)
+  - Preserve existing `.git/`, `.claude/`, `CLAUDE/`, `.gitignore`, `CLAUDE.md`
 - [ ] Install runtime dependencies: `dompurify`, `@types/dompurify`
 - [ ] Install dev dependencies: `eslint`, `typescript-eslint`, `@typescript-eslint/parser`
 - [ ] Configure `vite.config.ts` with `base` set to `/skywords/` (GitHub Pages path)
-- [ ] Configure `tsconfig.json` — strict mode, path aliases
-- [ ] Add `.gitignore` entries for `dist/`, `node_modules/`
-- [ ] Verify `npm run dev` starts successfully
+- [ ] Configure `tsconfig.json` — strict mode
+- [ ] Append to `.gitignore`: `dist/`, `node_modules/`
+- [ ] Verify `npm run dev` starts successfully (start and kill)
 - [ ] Verify `npm run build` produces `dist/`
+- [ ] Remove Vite boilerplate: default App.tsx content, App.css, assets/react.svg, public/vite.svg
+- [ ] Set up minimal App.tsx placeholder that renders "Skywords" text
+- [ ] Commit to main
 
-### Phase 1 — GitHub Actions & Pages Deploy
+### Task 2 — CI/CD Pipeline (agent: `ci-cd`)
+
+**Runs on:** worktree
+**Blocked by:** Task 1
+**Blocks:** Task 4
 
 - [ ] Create `.github/workflows/deploy.yml`
   - Trigger: push to `main`
-  - Steps: checkout → setup Node → install → build → deploy to `gh-pages` branch
+  - Steps: checkout → setup Node 20 → npm ci → npm run build → deploy
   - Use `peaceiris/actions-gh-pages@v4` action
-- [ ] Configure GitHub Pages in repo settings to serve from `gh-pages` branch
-- [ ] Add `CNAME` file if custom domain (`skywords.dhpc.org.uk` or similar) is needed
-  - _Note: clarify with owner whether to keep at `dhpc.org.uk/skywords/` or move_
-- [ ] Verify deploy workflow runs and page is accessible
+  - Set `permissions: contents: write`
+- [ ] Commit on worktree branch
 
-### Phase 2 — Core Services (no UI)
+### Task 3 — Types + Core Services (agent: `services`)
 
-- [ ] `src/services/docParser.ts` — `parseGoogleDoc(html: string): DocData`
-  - Use `DOMParser` to parse HTML string into a real DOM (no jQuery)
-  - Walk H1 elements → sections; H2 elements between H1s → subsections
-  - Content = HTML between headings, serialised back to string
-  - Rewrite Google redirect links (`google.com/url?q=`) to direct URLs
-  - Map Google Docs `ul` class suffixes (`-0` … `-5`) to `data-indent` attributes
-  - Return typed `DocData` structure (see ARCHITECTURE.md)
-  - Filter out sections with empty/whitespace titles
+**Runs on:** worktree
+**Blocked by:** Task 1
+**Blocks:** Task 4
+
+Read `CLAUDE/Plan/00001-skywords-rebuild/ARCHITECTURE.md` for detailed service specs.
+Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current JS logic to replicate.
+
+- [ ] `src/types/DocData.ts` — exported interfaces: `Subsection`, `Section`, `DocData`
 - [ ] `src/services/fetchDoc.ts` — `fetchGoogleDoc(url: string): Promise<string>`
   - `fetch(url, { cache: 'no-store' })` — always live, never cached
   - Append `?embedded=true` if not already present
   - Throw typed errors for network failure, non-200 response
-- [ ] `src/services/urlParams.ts` — `getDocUrl(): string | null`
+- [ ] `src/services/docParser.ts` — `parseGoogleDoc(html: string): DocData`
+  - Use `DOMParser` to parse HTML string into DOM (no jQuery)
+  - Walk H1 elements → sections; H2 elements between H1s → subsections
+  - Content = HTML between headings, serialised back to string
+  - Rewrite Google redirect links (`google.com/url?q=`) to direct URLs
+  - Map Google Docs `ul` class suffixes (`-0` … `-5`) to `data-indent` attributes
+  - Sanitise with DOMPurify
+  - Filter out sections with empty/whitespace titles
+- [ ] `src/services/urlParams.ts` — `getDocUrl(): string | null`, `setDocUrl(url: string): void`
   - Parse `window.location.hash` for `#url=` or `#id=` params
   - For `#id=`: construct full `https://docs.google.com/document/d/e/{id}/pub` URL
-  - Export `setDocUrl(url: string): void` — updates hash and triggers reload
-- [ ] Unit-testable pure functions — write at least smoke tests
+- [ ] Verify `npm run build` still passes with new files
+- [ ] Commit on worktree branch
 
-### Phase 3 — Type Definitions
+### Task 4 — UI Components + Styling (agent: `ui`)
 
-- [ ] `src/types/DocData.ts`
-  ```typescript
-  interface Subsection {
-    title: string;
-    content: string; // sanitised HTML
-  }
-  interface Section {
-    title: string;
-    content: string; // HTML before first h2
-    subsections: Subsection[];
-  }
-  interface DocData {
-    title: string;
-    sections: Section[];
-  }
-  ```
+**Runs on:** worktree (based on main after Tasks 2+3 merged)
+**Blocked by:** Tasks 2, 3
+**Blocks:** Task 5
 
-### Phase 4 — React Components
+Read `CLAUDE/Plan/00001-skywords-rebuild/COMPONENTS.md` for detailed component specs.
+Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current site CSS/layout reference.
 
-See [COMPONENTS.md](./COMPONENTS.md) for full component tree and props.
-
-- [ ] `src/components/Header/Header.tsx` — DHPC branded header
-  - Club logo (dhcp_logo.jpeg or SVG equivalent)
-  - Site title "Skywords"
-  - Responsive: logo hidden below 600px, reduced height
-- [ ] `src/components/Instructions/Instructions.tsx` — URL input screen
-  - Text explaining the tool
-  - URL input + submit button
-  - Calls `setDocUrl()` on submit
-  - Example link pre-filled or shown as hint
-- [ ] `src/components/DocumentIndex/DocumentIndex.tsx` — section list
-  - Renders doc title
-  - Lists all section titles as clickable links
-  - `onSectionSelect(index: number)` callback
-- [ ] `src/components/SectionView/SectionView.tsx` — single section
-  - Section title (H1-derived)
-  - Section intro content (HTML before first H2)
-  - List of subsections (each with title + content)
-  - `NavigationControls` at bottom
-- [ ] `src/components/NavigationControls/NavigationControls.tsx`
-  - Back / Home / Next buttons with Font Awesome icons
-  - Disabled states at boundaries
-  - `onBack`, `onHome`, `onNext` callbacks
-- [ ] `src/components/LoadingSpinner/LoadingSpinner.tsx` — fetch in progress
-- [ ] `src/components/ErrorMessage/ErrorMessage.tsx` — fetch/parse failure
-- [ ] `src/App.tsx` — root component, state machine
+- [ ] `src/index.css` — global resets, CSS custom properties (colour palette from current site)
+- [ ] Google Fonts `<link>` (Commissioner) and Font Awesome CDN `<link>` in `index.html`
+- [ ] Download `dhcp_logo.jpeg` from `https://www.dhpc.org.uk/skywords/dhcp_logo.jpeg` into `public/`
+- [ ] Update `index.html`: title "Skywords — DHPC Newsletter", meta description
+- [ ] `src/components/Header/` — Header.tsx + Header.module.css
+- [ ] `src/components/Instructions/` — Instructions.tsx + Instructions.module.css
+- [ ] `src/components/DocumentIndex/` — DocumentIndex.tsx + DocumentIndex.module.css
+- [ ] `src/components/SectionView/` — SectionView.tsx + SectionView.module.css
+- [ ] `src/components/NavigationControls/` — NavigationControls.tsx + NavigationControls.module.css
+- [ ] `src/components/LoadingSpinner/` — LoadingSpinner.tsx + LoadingSpinner.module.css
+- [ ] `src/components/ErrorMessage/` — ErrorMessage.tsx + ErrorMessage.module.css
+- [ ] `src/App.tsx` + `src/App.module.css` — root component with state machine
   - States: `idle` | `loading` | `loaded` | `error`
-  - On mount: call `getDocUrl()`, if URL → fetch → parse → `loaded`
-  - If no URL → `idle` (show Instructions)
-  - `currentSection: number | null` — null = show index
+  - Uses services from `src/services/`
   - Navigation handlers wired to `currentSection`
+- [ ] Responsive: 600px breakpoint (logo hide, header shrink), 80% width content area
+- [ ] Error handling: loading spinner, network error with retry, invalid URL validation
+- [ ] Verify `npm run build` passes with zero errors
+- [ ] Commit on worktree branch
 
-### Phase 5 — Styling
+### Task 5 — QA + Documentation (agent: `qa`)
 
-- [ ] `src/index.css` — global resets, CSS custom properties (same colour palette)
-  ```css
-  :root {
-    --text: #2b2b3a;
-    --blue-bg: #0d3c7c;
-    --accent: #1ed2f4;
-    --hover: #eafc40;
-    --alt: #f5ce28;
-    --links: rgb(0, 94, 184);
-  }
-  ```
-- [ ] CSS Module per component (`.module.css`) for scoped styles
-- [ ] Preserve list indentation levels via `data-indent` attribute styling
-- [ ] Google Fonts `<link>` in `index.html` for Commissioner
-- [ ] Font Awesome CDN `<link>` in `index.html`
-- [ ] Responsive breakpoints matching current: 600px (logo hide, header shrink)
-- [ ] Preserve 80% width content area
+**Runs on:** worktree (based on main after Task 4 merged)
+**Blocked by:** Task 4
 
-### Phase 6 — Assets
-
-- [ ] Source `dhcp_logo.jpeg` from current site (or request SVG from club)
-- [ ] Place in `public/` so Vite copies as-is to `dist/`
-- [ ] Update `index.html` title and meta description
-
-### Phase 7 — Error Handling & Edge Cases
-
-- [ ] Loading state shown while fetch is in progress
-- [ ] Network error (fetch fails) → show ErrorMessage with retry button
-- [ ] HTTP non-200 → show ErrorMessage with guidance
-- [ ] Google Doc has no H1 headings → show single-page content or error
-- [ ] Empty section titles filtered (matching current behaviour)
-- [ ] Invalid URL entered by user → validate before fetching (basic URL check)
-
-### Phase 8 — QA & Polish
-
-- [ ] Test with the example Google Doc:
-  `https://docs.google.com/document/d/e/2PACX-1vSv7aTai2yfObOHeDmYhtKpXFTQejk7imMRBqzlefdnvKGEHtBsWLlF-xIGUSbMphLnwFub-9jrvHaR/pub`
-- [ ] Verify URL hash routing: `#url=<doc-url>` loads directly
-- [ ] Verify `#id=<doc-id>` shorthand also works
-- [ ] Test section navigation (index → section → back/next → home)
-- [ ] Test on mobile viewport (320px, 375px, 768px)
-- [ ] Test on desktop (1280px, 1920px)
-- [ ] Verify Google redirect links are rewritten correctly
-- [ ] Verify list indentation levels render correctly
-- [ ] Verify images from Google Docs render (max-width: 100%)
-- [ ] Check Lighthouse score (aim for 90+ performance)
-- [ ] Verify no XSS vectors in DOMPurify output
-
-### Phase 9 — Documentation
-
-- [ ] Update `README.md` with:
-  - Project description
-  - Local dev instructions (`npm install`, `npm run dev`)
-  - How to deploy (GitHub Actions auto-deploys on push to `main`)
-  - How to change the default Google Doc URL
-  - URL parameter format (`#url=` and `#id=`)
+- [ ] `npm run build` succeeds with zero TypeScript errors
+- [ ] ESLint reports zero errors (fix any found)
+- [ ] Test with example Google Doc URL in dev server
+- [ ] Verify `#url=<doc-url>` hash routing loads correctly
+- [ ] Verify `#id=<doc-id>` shorthand works
+- [ ] Verify section navigation: index → section → back/next → home
+- [ ] Verify Google redirect links are rewritten to direct URLs
+- [ ] Verify list indentation renders correctly
+- [ ] Verify images from Google Docs render with `max-width: 100%`
+- [ ] Update `README.md` with project description, dev instructions, deploy info, URL format
+- [ ] Fix any issues found during QA
+- [ ] Commit on worktree branch
 
 ---
 
