@@ -15,9 +15,9 @@ jobs:
           cache: 'npm'
       - run: npm ci
       - run: npm run freeze
+      - run: npm run build
         env:
           VITE_PRERELEASE_PASSWORD_HASH: ${{ secrets.PRERELEASE_PASSWORD_HASH }}
-      - run: npm run build
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
