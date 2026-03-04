@@ -1,0 +1,26 @@
+.nav {
+  display: flex;
+  justify-content: space-between;
+  width: 80%;
+  margin: 30px auto;
+  padding: 20px 0;
+}
+
+.button {
+  cursor: pointer;
+  color: var(--normal);
+  font-size: 1.2em;
+  background: none;
+  border: none;
+  font-family: inherit;
+  padding: 0;
+}
+
+.button:hover:not(:disabled) {
+  color: var(--hover);
+}
+
+.button:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}

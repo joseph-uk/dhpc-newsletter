@@ -1,0 +1,41 @@
+.container {
+  width: 80%;
+  margin: 0 auto;
+  padding: 20px 0;
+}
+
+.title {
+  text-align: center;
+  font-size: 2em;
+  text-transform: uppercase;
+  color: var(--text);
+  padding: 20px 0;
+  margin: 0;
+}
+
+.list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.item {
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.link {
+  display: block;
+  width: 100%;
+  padding: 15px 0;
+  cursor: pointer;
+  font-size: 1.2em;
+  color: var(--text);
+  text-align: center;
+  background: none;
+  border: none;
+  font-family: inherit;
+}
+
+.link:hover {
+  color: var(--links);
+}
