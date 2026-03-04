@@ -126,6 +126,36 @@ When a bug is found, the first question is: "Can a machine detect this pattern a
 
 A single lint rule catches every past, present, and future instance of a bug pattern. A single test only catches one instance in one file. Prefer rules over tests where possible.
 
+### Mandatory Code Review Gate
+
+**No code is merged to main without passing parallel Opus sub-agent reviews.**
+
+The orchestrator must run **two independent review agents in parallel** (both using `model: opus`) before accepting any worktree branch merge or task completion:
+
+1. **Security Review** — scan for:
+   - XSS vectors (especially in `dangerouslySetInnerHTML` usage and DOMPurify config)
+   - Unsafe URL handling, open redirects
+   - Unsanitised user input flowing into DOM
+   - `eval`, `Function`, `innerHTML` without DOMPurify
+   - Dependency vulnerabilities
+
+2. **Quality Review** — verify compliance with all standards in this file:
+   - Zero `any`, zero `as`, zero `@ts-ignore`, zero `!` assertions
+   - Fail-fast: no silent defaults, no empty catches, no error suppression
+   - YAGNI: no speculative code, no premature abstractions
+   - Early returns: max nesting depth 3, guard clauses first
+   - Domain purity: services pure, components UI-only
+   - Anti-overfitting: no hardcoded special cases
+   - Functions under 30 lines, descriptive names, immutable by default
+   - `npm run build` and `npm run lint` both pass with zero errors
+
+**Review process:**
+- Orchestrator spawns both review agents in parallel against the worktree branch
+- Each reviewer reads every changed file and produces a PASS/FAIL verdict with specific findings
+- **Both must PASS** before the orchestrator merges the branch
+- On FAIL: orchestrator sends findings back to the implementation agent for fixes, then re-reviews
+- Review agents must NOT make code changes — read-only analysis only
+
 ### General Quality
 
 - **No `console.log` in committed code** — use proper error handling.

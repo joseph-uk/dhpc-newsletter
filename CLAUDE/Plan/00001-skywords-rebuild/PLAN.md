@@ -120,6 +120,31 @@ Task 1: scaffolder (main branch)
 | 4. UI + styling | `ui` | yes | Phase 4 + 5 + 6 + 7 | sonnet |
 | 5. QA + docs | `qa` | yes | Phase 8 + 9 | sonnet |
 
+### Mandatory Code Review Gate
+
+**Before any worktree branch is merged to main**, the orchestrator spawns two parallel
+Opus review agents (read-only, no code edits):
+
+1. **Security Reviewer** (opus) — XSS, unsafe URL handling, unsanitised input, DOMPurify config, dependency risks
+2. **Quality Reviewer** (opus) — full compliance check against `QUALITY-STANDARDS.md` and `CLAUDE.md`
+
+Both must return **PASS** before merge. On FAIL, findings go back to the implementation
+agent for fixes, then re-review. See `CLAUDE.md` "Mandatory Code Review Gate" for full rules.
+
+```
+Implementation agent completes work on worktree
+    │
+    ▼
+Orchestrator spawns 2 review agents (parallel, opus, read-only)
+    ├──► Security Review
+    └──► Quality Review
+              │
+              ▼
+         Both PASS? ──► Merge to main
+              │
+         Any FAIL? ──► Send findings to implementation agent ──► Re-review
+```
+
 ### Reference Documents (in this folder)
 
 - [QUALITY-STANDARDS.md](./QUALITY-STANDARDS.md) — **READ FIRST** — strict TypeScript, ESLint, fail-fast, YAGNI rules
