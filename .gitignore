@@ -1,2 +1,8 @@
 # Claude Code Hooks Daemon
 .claude/hooks-daemon/
+
+# Build output
+dist/
+
+# Dependencies
+node_modules/
