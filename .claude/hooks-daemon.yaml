@@ -1,0 +1,324 @@
+version: "2.0"
+
+# Daemon configuration
+daemon:
+  idle_timeout_seconds: 600  # Auto-shutdown after 10 minutes of inactivity
+  log_level: INFO
+  project_root: ../../  # Project root relative to this config file (always ../../)
+
+  # Input validation (v2.2.0+) - Catch malformed events at front controller layer
+  input_validation:
+    enabled: true              # Validate hook inputs (recommended)
+    strict_mode: true          # Fail-closed: return errors on validation failures
+    log_validation_errors: true
+
+# Built-in handler configuration
+# Handlers run in priority order (lower number = earlier execution)
+# Priority ranges: 5=test, 10-20=safety, 25-45=workflow, 50-60=tool usage
+handlers:
+  # PreToolUse handlers (run before every tool call)
+  pre_tool_use:
+    # SAFETY HANDLERS (Priority 10-20) - HIGHLY RECOMMENDED
+    destructive_git:       # Blocks git reset --hard, git clean -f, etc
+      enabled: true
+      priority: 10
+
+    daemon_location_guard: # Prevents cd into .claude/hooks-daemon (run commands from project root)
+      enabled: true
+      priority: 11
+
+    sed_blocker:           # Blocks sed command usage (use Edit tool instead)
+      enabled: true
+      priority: 11
+
+    absolute_path:         # Enforces absolute paths in file operations
+      enabled: true
+      priority: 12
+
+    error_hiding_blocker:  # Blocks error-hiding patterns (|| true, empty catch, except: pass, etc.)
+      enabled: true
+      priority: 13
+
+    curl_pipe_shell:       # Blocks dangerous curl | sh patterns
+      enabled: true
+      priority: 14
+
+    pipe_blocker:          # Blocks dangerous pipe patterns in bash commands
+      enabled: true
+      priority: 15
+
+    dangerous_permissions: # Warns about dangerous file permission changes
+      enabled: true
+      priority: 18
+
+    git_stash:             # Warns about git stash (stashes can be lost)
+      enabled: true
+      priority: 17
+
+    lock_file_edit_blocker: # Prevents editing package lock files
+      enabled: true
+      priority: 19
+
+    pip_break_system:      # Blocks pip commands that break system packages
+      enabled: true
+      priority: 20
+
+    sudo_pip:              # Blocks sudo pip (use venv instead)
+      enabled: true
+      priority: 21
+
+    daemon_restart_verifier: # Verifies daemon restart after code changes
+      enabled: false       # Enable for daemon development projects
+      priority: 22
+
+    worktree_file_copy:    # Prevents copying files between git worktrees
+      enabled: true
+      priority: 16
+
+    # CODE QUALITY HANDLERS (Priority 25-45) - Optional but recommended
+    qa_suppression:        # Unified multi-language QA suppression blocker (11 languages)
+      enabled: false       # Enable for strict code quality control
+      priority: 30
+      # options:
+      #   languages:       # Restrict to specific languages (default: ALL)
+      #     - Python
+      #     - Go
+      #     - JavaScript/TypeScript
+      #     - PHP
+
+    tdd_enforcement:       # Enforces test-first development
+      enabled: false       # Enable for strict TDD workflow
+      priority: 32
+
+    lsp_enforcement:       # Steers LLMs toward LSP tools instead of Grep/Bash grep
+      enabled: false       # Enable when LSP is configured
+      priority: 38
+      options:
+        mode: block_once       # advisory | block_once | strict
+        no_lsp_mode: block     # block | advisory | disable
+
+    # WORKFLOW HANDLERS (Priority 30-50) - Enable based on your workflow
+    plan_number_helper:    # Provides correct next plan number
+      enabled: false       # Enable when using CLAUDE/Plan/ structure
+      priority: 33
+      options:
+        track_plans_in_project: "CLAUDE/Plan"  # Must match markdown_organization setting
+
+    task_tdd_advisor:      # Advises on TDD workflow for tasks
+      enabled: false       # Enable for TDD guidance
+      priority: 36
+
+    gh_issue_comments:     # Requires --comments flag for gh issue view
+      enabled: true
+      priority: 40
+
+    validate_plan_number:  # Validates plan number format (001-, 002-, etc)
+      enabled: false       # Enable for projects using CLAUDE/Plan/
+      priority: 38
+
+    global_npm_advisor:    # Advises against global npm installs
+      enabled: true
+      priority: 42
+
+    plan_time_estimates:   # Blocks time estimates in plan files
+      enabled: false       # Enable for projects using CLAUDE/Plan/
+      priority: 45
+
+    plan_workflow:         # Provides guidance when creating plans
+      enabled: false       # Enable for projects using CLAUDE/Plan/
+      priority: 44
+
+    plan_completion_advisor: # Advises on plan completion workflow
+      enabled: false       # Enable for projects using CLAUDE/Plan/
+      priority: 48
+
+    validate_instruction_content: # Blocks ephemeral content in CLAUDE.md/README.md
+      enabled: false       # Enable to prevent implementation logs in instruction files
+      priority: 49
+
+    npm_command:           # Restricts npm commands to approved list
+      enabled: false       # Enable for strict npm usage control
+      priority: 50
+
+    markdown_organization: # Enforces markdown file organization rules & plan tracking
+      enabled: false       # Enable for md organization + plan tracking
+      priority: 51
+      # Docs: docs/guides/handlers/markdown_organization.md
+      options:
+        track_plans_in_project: null  # Set to "CLAUDE/Plan" to enable plan tracking
+        plan_workflow_docs: null      # Optional: path to workflow doc
+        #
+        # Monorepo support: regex patterns matching sub-project root directories.
+        # Sub-projects get the same organization rules as the root project.
+        # See docs/guides/HANDLER_REFERENCE.md -> "Monorepo Support"
+        #   monorepo_subproject_patterns:
+        #     - "packages/[^/]+"    # matches packages/frontend, packages/backend, etc.
+        #     - "apps/[^/]+"        # matches apps/web, apps/mobile, etc.
+        #
+        # Custom allowed markdown paths: OVERRIDES all built-in path rules.
+        # Each entry is a regex matched against the project-relative path.
+        # In monorepos, patterns match AFTER sub-project prefix stripping (same
+        # rules apply to root and all sub-projects). See HANDLER_REFERENCE.md.
+        # CLAUDE.md, README.md, CHANGELOG.md are always allowed regardless.
+        # Built-in defaults (used when this option is absent):
+        #   allowed_markdown_paths:
+        #     - "^CLAUDE/.*\\.md$"                              # LLM documentation
+        #     - "^docs/.*\\.md$"                                # Human-facing docs
+        #     - "^untracked/.*\\.md$"                           # Temporary docs
+        #     - "^RELEASES/.*\\.md$"                            # Release notes
+        #     - "^eslint-rules/.*\\.md$"                        # ESLint rule docs
+        #     - "^src/claude_code_hooks_daemon/guides/.*\\.md$" # Shipped guides
+        #     - "cluster"           # matches a single top-level sub-project folder
+        #     - "services"          # matches another top-level sub-project folder
+        monorepo_subproject_patterns: null
+
+    # TOOL USAGE HANDLERS (Priority 50-60)
+    web_search_year:       # Fixes year in web search queries (uses current year)
+      enabled: true
+      priority: 55
+
+    british_english:       # Warns about American English spelling
+      enabled: false       # Enable if you prefer British English
+      priority: 60
+
+  # PostToolUse handlers (run after tool execution)
+  post_tool_use:
+    bash_error_detector:   # Detects bash errors and suggests corrections
+      enabled: true
+      priority: 10
+
+    lint_on_edit:              # Language-aware lint validation after Write/Edit
+      enabled: false           # Enable for automatic lint validation (Shell, Python, Go, Rust, etc.)
+      priority: 25
+
+    validate_eslint_on_write:  # Runs ESLint after file writes
+      enabled: false           # Enable for automatic ESLint validation
+      priority: 20
+
+  # SessionStart handlers (run when session starts)
+  session_start:
+    yolo_container_detection:  # Detects YOLO development environments (Docker, etc)
+      enabled: true
+      priority: 10
+
+    optimal_config_checker:  # Checks Claude Code env for optimal settings
+      enabled: true
+      priority: 52
+
+    suggest_status_line:  # Suggests daemon-based status line setup
+      enabled: true      # Recommends status line if not configured
+      priority: 55
+
+    version_check:  # Checks if daemon is up-to-date with latest release
+      enabled: true  # Notifies on new sessions if updates available (24h cache)
+      priority: 56
+
+    workflow_state_restoration:  # Restores workflow state after compaction
+      enabled: false             # Enable for workflow state management
+      priority: 60
+
+  # PreCompact handlers (run before conversation compaction)
+  pre_compact:
+    transcript_archiver:  # Archives transcripts before compaction
+      enabled: false      # Enable to save conversation history
+      priority: 10
+
+    workflow_state_pre_compact:  # Saves workflow state before compaction
+      enabled: false             # Enable for workflow state management
+      priority: 20
+
+  # SessionEnd handlers (run when session ends)
+  session_end:
+    cleanup:  # Session cleanup operations
+      enabled: true
+      priority: 10
+
+  # SubagentStop handlers (run when subagent completes)
+  subagent_stop:
+    subagent_completion_logger:  # Logs subagent completion
+      enabled: false  # Enable for debugging subagent workflows
+      priority: 10
+
+    remind_prompt_library:  # Reminds about prompt library after agent work
+      enabled: false        # Enable if using prompt library system
+      priority: 20
+
+  # UserPromptSubmit handlers (run when user submits prompt)
+  user_prompt_submit:
+    git_context_injector:  # Injects git context into user prompts
+      enabled: true
+      priority: 10
+
+    critical_thinking_advisory:  # Periodic advisory encouraging critical evaluation
+      enabled: false              # Enable for critical thinking nudges on substantial prompts
+      priority: 55
+
+  # Other hook events
+  permission_request:
+    auto_approve_reads:  # Auto-approves read-only file operations
+      enabled: true
+      priority: 10
+
+  notification:
+    notification_logger:  # Logs notifications
+      enabled: false      # Enable for debugging
+      priority: 10
+
+  stop:
+    auto_continue_stop:  # Auto-continues after stop events based on criteria
+      enabled: true
+      priority: 10
+
+    hedging_language_detector:  # Detects guessing language (should probably, IIRC, I believe, etc)
+      enabled: true
+      priority: 30
+
+    task_completion_checker:  # Checks for task completion
+      enabled: false           # Enable if using task management system
+      priority: 20
+
+  # Status line handlers (format daemon-based status display)
+  status_line:
+    model_context:  # Shows model name and color-coded context percentage
+      enabled: true
+      priority: 10
+
+    git_branch:     # Shows current git branch if in repo
+      enabled: true
+      priority: 20
+
+    git_repo_name:  # Shows git repository name
+      enabled: true
+      priority: 25
+
+    working_directory:  # Shows current working directory when different from project root
+      enabled: true
+      priority: 25
+
+    daemon_stats:   # Shows daemon uptime, memory, log level
+      enabled: true
+      priority: 30
+
+    account_display: # Shows account information
+      enabled: true
+      priority: 40
+
+    thinking_mode:  # Shows current thinking mode (displayed next to model)
+      enabled: true
+      priority: 12
+
+    current_time:   # Shows current local time (24-hour format)
+      enabled: true
+      priority: 14
+
+    usage_tracking: # Tracks and displays usage statistics
+      enabled: true
+      priority: 60
+
+# Project-level handlers (custom handlers in .claude/hooks/handlers/)
+# Example:
+# plugins:
+#   - type: "file"
+#     path: ".claude/hooks/handlers/pre_tool_use/my_handler.py"
+#     class: "MyHandler"
+#     events: ["PreToolUse"]
