@@ -13,6 +13,18 @@ function rewriteLinks(doc: Document): void {
   });
 }
 
+function rewriteImageUrls(doc: Document): void {
+  doc.querySelectorAll('img[src]').forEach((img) => {
+    const src = img.getAttribute('src') ?? '';
+    if (src.includes('docs.google.com/docs-images-rt/')) {
+      img.setAttribute(
+        'src',
+        src.replace('docs.google.com/docs-images-rt/', 'lh3.googleusercontent.com/docs-images-rt/'),
+      );
+    }
+  });
+}
+
 function fixListIndent(doc: Document): void {
   doc.querySelectorAll('ul').forEach((ul) => {
     const classes = ul.getAttribute('class') ?? '';
@@ -95,6 +107,7 @@ export function parseGoogleDoc(html: string): DocData {
 
   const parsed = new DOMParser().parseFromString(html, 'text/html');
   rewriteLinks(parsed);
+  rewriteImageUrls(parsed);
   fixListIndent(parsed);
 
   const title = extractTitle(parsed);

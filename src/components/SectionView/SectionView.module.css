@@ -9,6 +9,10 @@
   color: var(--text);
   padding: 20px 0;
   margin: 0;
+  border-bottom: 1px solid #e0e0e0;
+  width: 80%;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .subsectionTitle {
@@ -22,8 +26,8 @@
 
 .sectionContent,
 .subsectionContent {
-  width: 80%;
+  width: 100%;
   margin: 0 auto;
-  line-height: 1.6;
+  line-height: 1.8;
   color: var(--text);
 }
