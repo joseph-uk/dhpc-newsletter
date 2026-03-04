@@ -148,14 +148,14 @@ export default function App(): React.JSX.Element {
 
     if (state.currentSection === null) {
       return (
-        <DocumentIndex doc={state.doc} onSectionSelect={handleSectionSelect} />
+        <DocumentIndex doc={state.doc} onSectionSelect={handleSectionSelect} onBackToIndex={undefined} />
       );
     }
 
     const section = state.doc.sections[state.currentSection];
     if (section === undefined) {
       return (
-        <DocumentIndex doc={state.doc} onSectionSelect={handleSectionSelect} />
+        <DocumentIndex doc={state.doc} onSectionSelect={handleSectionSelect} onBackToIndex={undefined} />
       );
     }
 

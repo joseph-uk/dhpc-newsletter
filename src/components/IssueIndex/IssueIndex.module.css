@@ -4,7 +4,7 @@
   padding: 20px 0;
 }
 
-.title {
+.heading {
   text-align: center;
   font-size: 2em;
   text-transform: uppercase;
@@ -40,20 +40,16 @@
   color: var(--links);
 }
 
-.backLink {
-  display: block;
-  margin: 10px auto 0;
-  padding: 8px 20px;
-  font-size: 0.95em;
-  color: var(--links);
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: inherit;
-  text-align: center;
-}
-
-.backLink:hover {
-  color: var(--text);
-  text-decoration: underline;
+.badge {
+  display: inline-block;
+  margin-left: 10px;
+  padding: 2px 6px;
+  font-size: 0.65em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--white);
+  background-color: var(--blue-background);
+  border-radius: 3px;
+  vertical-align: middle;
 }
