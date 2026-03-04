@@ -122,6 +122,7 @@ Task 1: scaffolder (main branch)
 
 ### Reference Documents (in this folder)
 
+- [QUALITY-STANDARDS.md](./QUALITY-STANDARDS.md) — **READ FIRST** — strict TypeScript, ESLint, fail-fast, YAGNI rules
 - [ARCHITECTURE.md](./ARCHITECTURE.md) — data model, service layer, Vite config, GH Actions workflow
 - [COMPONENTS.md](./COMPONENTS.md) — full component tree with TypeScript props
 - [CURRENT-SYSTEM.md](./CURRENT-SYSTEM.md) — current site JS/CSS/HTML source (reference for behaviour matching)
@@ -140,9 +141,15 @@ Task 1: scaffolder (main branch)
   - `npm create vite@latest . -- --template react-ts`
   - Preserve existing `.git/`, `.claude/`, `CLAUDE/`, `.gitignore`, `CLAUDE.md`
 - [ ] Install runtime dependencies: `dompurify`, `@types/dompurify`
-- [ ] Install dev dependencies: `eslint`, `typescript-eslint`, `@typescript-eslint/parser`
+- [ ] Install dev dependencies: `eslint`, `@typescript-eslint/eslint-plugin`, `@typescript-eslint/parser`, `typescript-eslint`
 - [ ] Configure `vite.config.ts` with `base` set to `/skywords/` (GitHub Pages path)
-- [ ] Configure `tsconfig.json` — strict mode
+- [ ] Configure `tsconfig.json` — maximum strictness (see QUALITY-STANDARDS.md):
+  `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitReturns`,
+  `noImplicitOverride`, `noFallthroughCasesInSwitch`, `forceConsistentCasingInFileNames`,
+  `noPropertyAccessFromIndexSignature`
+- [ ] Configure `eslint.config.js` — flat config with full `typescript-eslint` rule set (see QUALITY-STANDARDS.md):
+  ban `any`, ban `as` assertions, ban `!` assertions, ban `eval`, enforce `eqeqeq`,
+  `no-console`, `prefer-const`, `max-depth: 3`, `no-else-return`
 - [ ] Append to `.gitignore`: `dist/`, `node_modules/`
 - [ ] Verify `npm run dev` starts successfully (start and kill)
 - [ ] Verify `npm run build` produces `dist/`
@@ -169,6 +176,7 @@ Task 1: scaffolder (main branch)
 **Blocked by:** Task 1
 **Blocks:** Task 4
 
+Read `CLAUDE/Plan/00001-skywords-rebuild/QUALITY-STANDARDS.md` — all code must comply.
 Read `CLAUDE/Plan/00001-skywords-rebuild/ARCHITECTURE.md` for detailed service specs.
 Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current JS logic to replicate.
 
@@ -197,6 +205,7 @@ Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current JS logic
 **Blocked by:** Tasks 2, 3
 **Blocks:** Task 5
 
+Read `CLAUDE/Plan/00001-skywords-rebuild/QUALITY-STANDARDS.md` — all code must comply.
 Read `CLAUDE/Plan/00001-skywords-rebuild/COMPONENTS.md` for detailed component specs.
 Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current site CSS/layout reference.
 
@@ -242,13 +251,41 @@ Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current site CSS
 
 ## Acceptance Criteria
 
-- [ ] `npm run build` succeeds with zero TypeScript errors
-- [ ] ESLint reports zero errors
-- [ ] GitHub Actions workflow deploys successfully to GitHub Pages on push to `main`
-- [ ] Example Google Doc renders identically (visually) to the current AngularJS version
-- [ ] Section navigation works: index → section → subsections visible → back/next/home
+### Build & Lint (non-negotiable)
+
+- [ ] `npm run build` — zero errors, zero warnings
+- [ ] `npm run lint` — zero errors
+- [ ] No `any` types anywhere in the codebase
+- [ ] No `as` type assertions anywhere in the codebase
+- [ ] No `@ts-ignore`, `@ts-nocheck`, `@ts-expect-error` anywhere
+- [ ] No non-null assertions (`!`) anywhere
+- [ ] No `console.log` in committed code
+- [ ] No commented-out code, no TODO/FIXME comments
+
+### Functional
+
+- [ ] Example Google Doc renders matching the current AngularJS version
+- [ ] Section navigation works: index → section → subsections → back/next/home
 - [ ] Refreshing the page with a `#url=` hash re-fetches the live doc
+- [ ] `#id=` shorthand also works
+- [ ] Google redirect links rewritten to direct URLs
+- [ ] List indentation renders correctly (levels 0-5)
+- [ ] Images from Google Docs render with `max-width: 100%`
 - [ ] No AngularJS, jQuery, or W3.CSS dependencies remain
+
+### Code Quality
+
+- [ ] All functions under 30 lines
+- [ ] Max nesting depth of 3
+- [ ] Guard clauses used throughout — no pyramid nesting
+- [ ] Services are pure (no React, no DOM side effects except DOMParser)
+- [ ] Components are UI-only (no data fetching, no parsing logic)
+- [ ] No hardcoded special cases or overfitted logic
+- [ ] Fail-fast: invalid inputs throw with clear messages, never silently degrade
+
+### Deploy
+
+- [ ] GitHub Actions workflow deploys successfully to GitHub Pages on push to `main`
 
 ---
 
