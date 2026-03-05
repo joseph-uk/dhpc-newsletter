@@ -1,6 +1,104 @@
 {
   "issues": [
     {
+      "slug": "2023-05",
+      "title": "May 2023",
+      "docUrl": "https://docs.google.com/document/d/1N-jrYzs2KigtwS_h-RtLVcrnCxu5FfI6EjOJHQHfebk/pub",
+      "status": "published",
+      "contentHash": "45ac0c2d8532518512acd5c747710f4325888cb047365def1a7cf4c58959e0c1"
+    },
+    {
+      "slug": "2023-06",
+      "title": "June 2023",
+      "docUrl": "https://docs.google.com/document/d/1Z6wJo8P4GZ6QLDyd9JmhWchseiA-2ueXIws46WUKa6E/pub",
+      "status": "published",
+      "contentHash": "bbaa08ad1d73669d715d06ad390f41cc97eb2c346433f9cdf389f6a31918944b"
+    },
+    {
+      "slug": "2023-10",
+      "title": "October 2023",
+      "docUrl": "https://docs.google.com/document/d/1B1DB49_cq9LTrN3ZgdoGUBDvLoXIz7VP8814BAPmY2U/pub",
+      "status": "published",
+      "contentHash": "56bbd1129d73dc230e39d0b2d3184d1f2fddadea33ba1c3008469db9b4e971a3"
+    },
+    {
+      "slug": "2024-01",
+      "title": "January 2024",
+      "docUrl": "https://docs.google.com/document/d/1rBBa1dw1iYAePy3Vb19qQLkHFLYRvBqzmVI2Ajg7lVI/pub",
+      "status": "published",
+      "contentHash": "940a37ecc8fa38a06157804e6c3588b4cac910ca4bb85444c9399f410ddf1570"
+    },
+    {
+      "slug": "2024-02",
+      "title": "February 2024",
+      "docUrl": "https://docs.google.com/document/d/13Zs27jkpsYQZC5g0uwpgPws7iH1KMXVLY50R1DpbfYU/pub",
+      "status": "published",
+      "contentHash": "0de83824332b34721545eaf6eb2c41814e1a33709096b3706d027f3359855da0"
+    },
+    {
+      "slug": "2024-03",
+      "title": "March 2024",
+      "docUrl": "https://docs.google.com/document/d/1P5OA79jkwH80E-VVZVcm_M6_d6fy3cnfo5-Q3z7BXNs/pub",
+      "status": "published",
+      "contentHash": "be86929f0c43b04934cbdd2a4ea854cd2faeeb850a3226da9290291230e71d28"
+    },
+    {
+      "slug": "2024-04",
+      "title": "April 2024",
+      "docUrl": "https://docs.google.com/document/d/185BxsXcWN3N7mREFtFUPviYCaphwYbWyx84IcNr21mM/pub",
+      "status": "published",
+      "contentHash": "c35a5ea23141c29aead428236166b6068856d8175578e5d771b8205426e9bbac"
+    },
+    {
+      "slug": "2024-05",
+      "title": "May 2024",
+      "docUrl": "https://docs.google.com/document/d/17-HFJINhlkuClF__oF1MfqOhbBCL0RHraSl_GfafJdk/pub",
+      "status": "published",
+      "contentHash": "6a454ac006ce3e3a1c47591f14acd31bae5569f5b354679f7b17fb0386246a1c"
+    },
+    {
+      "slug": "2024-06",
+      "title": "June 2024",
+      "docUrl": "https://docs.google.com/document/d/1GYVBS8OeTuLTuVC-DxPRlH53gLU8eFDv3abHO31ZmsA/pub",
+      "status": "published",
+      "contentHash": "960ebad381baece94d86bd08a765eb0ef9cc49e4424e2088d77a9873e72e6373"
+    },
+    {
+      "slug": "2024-07",
+      "title": "July 2024",
+      "docUrl": "https://docs.google.com/document/d/14WVfb8XdKLg0QLpoRXFOXj8uPuTWw-DvETu6bMuY0V4/pub",
+      "status": "published",
+      "contentHash": "0ee4ffb6b2c848f844c558eb4ecd636051c62c83384feeeb9f2a1d6e2f3d9d95"
+    },
+    {
+      "slug": "2024-08",
+      "title": "August 2024",
+      "docUrl": "https://docs.google.com/document/d/1f_j9Y8t3S0ThlwXmFzv7-8m8ylyIba8FuXMzbVVWEA0/pub",
+      "status": "published",
+      "contentHash": "69cce6dce7048293d13ff9518f3da87cc439072f717dd0be2a95f0a942618b39"
+    },
+    {
+      "slug": "2024-09",
+      "title": "September 2024",
+      "docUrl": "https://docs.google.com/document/d/1VzoWT0Rblh94H0MaS3LrGVLelheY0rKeTqNtfNT5cTQ/pub",
+      "status": "published",
+      "contentHash": "e90628224bf533c64daa7c32faa776589bf46230e24cd753e8ad2df3f5c5cf2d"
+    },
+    {
+      "slug": "2024-10",
+      "title": "October 2024",
+      "docUrl": "https://docs.google.com/document/d/1plJhgeWxnsP8hmhVApZbEpdxx3jVqzfIuYwmoaeT1Jw/pub",
+      "status": "published",
+      "contentHash": "babbe8040250fcb791707c41c182356bb6d8c6637828605987ed19d2e30f0501"
+    },
+    {
+      "slug": "2024-11",
+      "title": "November 2024",
+      "docUrl": "https://docs.google.com/document/d/1iUiUyZaL64hZQ-ji-6-i3EiJXKM9kI4uG2BFqm3fSF4/pub",
+      "status": "published",
+      "contentHash": "a34384f442b3e837a9a9e507efcd2e84bd69ef4dafcb361f6f309f6ff250af09"
+    },
+    {
       "slug": "2024-12",
       "title": "December 2024",
       "docUrl": "https://docs.google.com/document/d/1Vt-MJ8jNld70cABZ1vlcwny6C7DaVOxwA2UHmvQTxH4/pub",
@@ -88,7 +186,7 @@
       "slug": "2026-03",
       "title": "March 2026",
       "docUrl": "https://docs.google.com/document/d/e/2PACX-1vSv7aTai2yfObOHeDmYhtKpXFTQejk7imMRBqzlefdnvKGEHtBsWLlF-xIGUSbMphLnwFub-9jrvHaR/pub",
-      "status": "pre-release",
+      "status": "published",
       "contentHash": "fe59276e50eb113ce2b1f2c87c30ec81da8b4c4097fb5fe3d58b6c21c50cb258"
     }
   ]
