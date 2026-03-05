@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Issue, Registry } from '../src/types/Registry';
 import { parseCsvContent, isActiveRow } from './lib/csv';
 import type { CsvRow } from './lib/csv';
-import { readCachedDoc, readCacheMeta } from './lib/cache';
+import { readCachedDoc, readCacheMeta, hasCachedDoc } from './lib/cache';
 import { buildDeploymentUrlMap, rewriteDocDataImages } from './lib/contentRewriter';
 
 function parseCsv(csvPath: string): readonly CsvRow[] {
@@ -85,13 +85,20 @@ function main(): void {
 
   mkdirSync(issuesDir, { recursive: true });
 
-  process.stderr.write(`Freezing ${rows.length} issues from cache\n`);
+  const cachedRows = rows.filter((row) => hasCachedDoc(docsRoot, row.slug));
+  const skippedCount = rows.length - cachedRows.length;
 
-  for (const row of rows) {
+  if (skippedCount > 0) {
+    process.stderr.write(`Skipping ${skippedCount} issues without cached data (run 'npm run cache' to fetch)\n`);
+  }
+
+  process.stderr.write(`Freezing ${cachedRows.length} issues from cache\n`);
+
+  for (const row of cachedRows) {
     freezeIssue(row, docsRoot, issuesDir);
   }
 
-  const registry: Registry = buildRegistry(rows, docsRoot);
+  const registry: Registry = buildRegistry(cachedRows, docsRoot);
   const registryPath = join(publicDir, 'registry.json');
   writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf-8');
   process.stderr.write(`Written: ${registryPath}\n`);

@@ -93,6 +93,11 @@ function assertIsDocData(value: unknown, slug: string): asserts value is DocData
   }
 }
 
+export function hasCachedDoc(docsRoot: string, slug: string): boolean {
+  const docPath = join(docsRoot, slug, 'doc.json');
+  return existsSync(docPath);
+}
+
 export function readCachedDoc(docsRoot: string, slug: string): DocData {
   const docPath = join(docsRoot, slug, 'doc.json');
   if (!existsSync(docPath)) {
