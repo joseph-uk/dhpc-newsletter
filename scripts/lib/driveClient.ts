@@ -43,11 +43,20 @@ export function buildDocUrl(docId: string): string {
 export function extractSlugFromTitle(title: string): string | null {
   if (title.length === 0) return null;
 
-  const match = title.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b/i);
-  if (match === null) return null;
+  const slugMatch = title.match(/\b(\d{4})-(0[1-9]|1[0-2])\b/);
+  if (slugMatch !== null) {
+    const year = slugMatch[1];
+    const month = slugMatch[2];
+    if (year !== undefined && month !== undefined) {
+      return `${year}-${month}`;
+    }
+  }
 
-  const monthName = match[1];
-  const year = match[2];
+  const monthMatch = title.match(/\b(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{4})\b/i);
+  if (monthMatch === null) return null;
+
+  const monthName = monthMatch[1];
+  const year = monthMatch[2];
   if (monthName === undefined || year === undefined) return null;
 
   const monthNum = MONTH_MAP.get(monthName.toLowerCase());

@@ -33,6 +33,23 @@ describe('extractSlugFromTitle', () => {
     expect(extractSlugFromTitle('skywords JULY 2025')).toBe('2025-07');
   });
 
+  it('extracts slug from YYYY-MM format "2024-12"', () => {
+    expect(extractSlugFromTitle('2024-12')).toBe('2024-12');
+  });
+
+  it('extracts slug from YYYY-MM with suffix "2023-10 - Published"', () => {
+    expect(extractSlugFromTitle('2023-10 - Published')).toBe('2023-10');
+  });
+
+  it('extracts slug from YYYY-MM with suffix "2023-08-skywords"', () => {
+    expect(extractSlugFromTitle('2023-08-skywords')).toBe('2023-08');
+  });
+
+  it('rejects invalid month in YYYY-MM format', () => {
+    expect(extractSlugFromTitle('2024-13')).toBeNull();
+    expect(extractSlugFromTitle('2024-00')).toBeNull();
+  });
+
   it('returns null for unrecognised title format', () => {
     expect(extractSlugFromTitle('Meeting Notes')).toBeNull();
   });
