@@ -1,6 +1,10 @@
 import styles from './Header.module.css';
 
-export function Header(): React.JSX.Element {
+interface HeaderProps {
+  readonly title: string | undefined;
+}
+
+export function Header({ title }: HeaderProps): React.JSX.Element {
   return (
     <header className={styles['header']}>
       <img
@@ -8,7 +12,7 @@ export function Header(): React.JSX.Element {
         src={`${import.meta.env.BASE_URL}dhcp_logo.jpeg`}
         alt="DHPC Logo"
       />
-      <span className={styles['title']}>Skywords</span>
+      <span className={styles['title']}>{title ?? 'Skywords'}</span>
     </header>
   );
 }

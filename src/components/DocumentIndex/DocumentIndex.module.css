@@ -29,8 +29,9 @@
   padding: 15px 0;
   cursor: pointer;
   font-size: 1.2em;
-  color: var(--text);
-  text-align: center;
+  font-weight: 700;
+  color: var(--blue-background);
+  text-align: left;
   background: none;
   border: none;
   font-family: inherit;

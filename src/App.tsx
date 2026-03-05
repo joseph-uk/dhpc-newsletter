@@ -189,9 +189,11 @@ export default function App(): React.JSX.Element {
     return <SectionView section={section} onBack={handleBack} onHome={handleHome} onNext={handleNext} />;
   }
 
+  const headerTitle = state.status === 'loaded' ? state.doc.title : undefined;
+
   return (
     <>
-      <Header />
+      <Header title={headerTitle} />
       <main className={styles['main']}>{renderContent()}</main>
     </>
   );

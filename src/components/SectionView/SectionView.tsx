@@ -17,6 +17,7 @@ export function SectionView({
 }: SectionViewProps): React.JSX.Element {
   return (
     <article className={styles['article']}>
+      <NavigationControls onBack={onBack} onHome={onHome} onNext={onNext} />
       <h1 className={styles['sectionTitle']}>{section.title}</h1>
       {section.content.length > 0 && (
         <div

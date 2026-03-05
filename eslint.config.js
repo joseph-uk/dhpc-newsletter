@@ -56,10 +56,7 @@ export default defineConfig([
       ecmaVersion: 2022,
       globals: globals.node,
       parserOptions: {
-        projectService: {
-          allowDefaultProject: ['scripts/*.ts'],
-          defaultProject: './tsconfig.scripts.json',
-        },
+        project: './tsconfig.scripts.json',
         tsconfigRootDir: import.meta.dirname,
       },
     },

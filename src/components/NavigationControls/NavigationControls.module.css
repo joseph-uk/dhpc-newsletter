@@ -8,8 +8,9 @@
 
 .button {
   cursor: pointer;
-  color: var(--normal);
-  font-size: 1.2em;
+  color: var(--text);
+  font-size: 1.1em;
+  font-weight: 600;
   background: none;
   border: none;
   font-family: inherit;
@@ -17,7 +18,7 @@
 }
 
 .button:hover:not(:disabled) {
-  color: var(--hover);
+  color: var(--links);
 }
 
 .button:disabled {
