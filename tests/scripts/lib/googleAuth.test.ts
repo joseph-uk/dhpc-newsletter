@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { validateClientSecret, validateSavedToken, verifyGitignoreCoverage } from './googleAuth';
+import { validateClientSecret, validateSavedToken, verifyGitignoreCoverage } from '../../../scripts/lib/googleAuth';
 
 describe('validateClientSecret', () => {
   const validSecret = {

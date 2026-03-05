@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { checkContentFreshness } from './freshnessCheck';
-import { sha256Browser } from './contentHash';
+import { checkContentFreshness } from '../../src/services/freshnessCheck';
+import { sha256Browser } from '../../src/services/contentHash';
 
 describe('checkContentFreshness', () => {
   const sampleHtml = `<html><head><style>.title{}</style></head><body>

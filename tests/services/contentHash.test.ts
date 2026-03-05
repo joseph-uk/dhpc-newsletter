@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sha256Browser } from './contentHash';
+import { sha256Browser } from '../../src/services/contentHash';
 
 describe('sha256Browser', () => {
   it('returns a 64-character hex string', async () => {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDocUrl, extractFolderId, extractSlugFromTitle, parseDriveFileList } from './driveClient';
+import { buildDocUrl, extractFolderId, extractSlugFromTitle, parseDriveFileList } from '../../../scripts/lib/driveClient';
 
 describe('buildDocUrl', () => {
   it('constructs a published URL from a document ID', () => {

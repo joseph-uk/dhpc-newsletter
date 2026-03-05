@@ -36,6 +36,78 @@ function fixListIndent(doc: Document): void {
   });
 }
 
+interface FormattingRule {
+  readonly fontWeight: string | null;
+  readonly fontStyle: string | null;
+  readonly textDecoration: string | null;
+}
+
+function parseFormattingRules(doc: Document): ReadonlyMap<string, FormattingRule> {
+  const rules = new Map<string, FormattingRule>();
+  const styleElements = doc.querySelectorAll('style');
+
+  for (const styleEl of styleElements) {
+    const cssText = styleEl.textContent ?? '';
+    const rulePattern = /\.(c\d+)\{([^}]*)\}/g;
+    let match = rulePattern.exec(cssText);
+
+    while (match !== null) {
+      const className = match[1];
+      const declarations = match[2];
+      if (className === undefined || declarations === undefined) {
+        match = rulePattern.exec(cssText);
+        continue;
+      }
+
+      const weightMatch = declarations.match(/font-weight:\s*(\d+)/);
+      const styleMatch = declarations.match(/font-style:\s*(\w+)/);
+      const decoMatch = declarations.match(/text-decoration:\s*(underline)/);
+
+      const weight = weightMatch !== null && weightMatch[1] !== undefined
+        ? parseInt(weightMatch[1], 10)
+        : null;
+      const style = styleMatch !== null ? styleMatch[1] : null;
+      const deco = decoMatch !== null ? decoMatch[1] : null;
+
+      const hasBold = weight !== null && weight >= 700;
+      const hasItalic = style !== null && style === 'italic';
+      const hasUnderline = deco !== null;
+
+      if (hasBold || hasItalic || hasUnderline) {
+        rules.set(className, {
+          fontWeight: hasBold ? 'bold' : null,
+          fontStyle: hasItalic ? 'italic' : null,
+          textDecoration: hasUnderline ? 'underline' : null,
+        });
+      }
+
+      match = rulePattern.exec(cssText);
+    }
+  }
+
+  return rules;
+}
+
+function inlineFormattingStyles(doc: Document): void {
+  const rules = parseFormattingRules(doc);
+  if (rules.size === 0) return;
+
+  for (const [className, rule] of rules) {
+    const elements = doc.querySelectorAll(`.${className}`);
+    for (const el of elements) {
+      const parts: string[] = [];
+      const existing = el.getAttribute('style') ?? '';
+      if (existing.length > 0) {
+        parts.push(existing.endsWith(';') ? existing : `${existing};`);
+      }
+      if (rule.fontWeight !== null) parts.push(`font-weight:${rule.fontWeight}`);
+      if (rule.fontStyle !== null) parts.push(`font-style:${rule.fontStyle}`);
+      if (rule.textDecoration !== null) parts.push(`text-decoration:${rule.textDecoration}`);
+      el.setAttribute('style', parts.join(';'));
+    }
+  }
+}
+
 function serialise(nodes: readonly Node[]): string {
   const first = nodes[0];
   if (first === undefined) return '';
@@ -111,6 +183,7 @@ export function parseDocument(doc: Document, sanitize: Sanitize): DocData {
   rewriteLinks(doc);
   rewriteImageUrls(doc);
   fixListIndent(doc);
+  inlineFormattingStyles(doc);
 
   const title = extractTitle(doc);
   const h1s = Array.from(doc.querySelectorAll('h1'));

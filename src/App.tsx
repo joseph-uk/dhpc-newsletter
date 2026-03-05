@@ -117,7 +117,7 @@ export default function App(): React.JSX.Element {
     }
 
     setState({ status: 'error', registry, message: `Page not found: "${route.path}"` });
-  }, []);
+  }, [handleFreshDoc]);
 
   useEffect(() => {
     const route = getCurrentRoute();

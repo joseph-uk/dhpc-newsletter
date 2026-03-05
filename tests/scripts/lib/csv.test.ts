@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvRow, parseCsvContent, formatCsvRow, isActiveRow } from './csv';
+import { parseCsvRow, parseCsvContent, formatCsvRow, isActiveRow } from '../../../scripts/lib/csv';
 
 describe('parseCsvRow', () => {
   it('parses a valid CSV row', () => {

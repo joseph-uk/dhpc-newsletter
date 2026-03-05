@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseRoute, buildPath, slugify, findArticleIndex } from './router';
+import { parseRoute, buildPath, slugify, findArticleIndex } from '../../src/services/router';
 
 const BASE = '/dhpc-newsletter/';
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { extractImageId, contentTypeToExtension } from './imageDownloader';
+import { extractImageId, contentTypeToExtension } from '../../../scripts/lib/imageDownloader';
 
 describe('extractImageId', () => {
   it('extracts ID from Google CDN URL', () => {

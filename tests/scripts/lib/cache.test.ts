@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { isCacheStale, validateCacheMeta } from './cache';
-import type { CacheMeta } from './cache';
+import { isCacheStale, validateCacheMeta } from '../../../scripts/lib/cache';
+import type { CacheMeta } from '../../../scripts/lib/cache';
 
 describe('isCacheStale', () => {
   it('returns false when cache is fresh', () => {

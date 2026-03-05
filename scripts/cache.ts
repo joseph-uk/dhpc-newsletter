@@ -10,6 +10,8 @@ import type { CacheMeta } from './lib/cache';
 import { extractImageUrls, rewriteDocDataImages } from './lib/contentRewriter';
 import { downloadAllImages } from './lib/imageDownloader';
 import { sha256 } from './lib/hash';
+import { extractShortUrls, resolveShortUrls, replaceUrls } from './lib/shortUrlResolver';
+import type { DocData } from '../src/types/DocData';
 
 const TTL_FROZEN = Infinity;
 const TTL_PUBLISHED = 24 * 60 * 60 * 1000;
@@ -44,7 +46,33 @@ async function fetchDocHtml(docUrl: string): Promise<string> {
   return response.text();
 }
 
-function collectAllImageUrls(doc: import('../src/types/DocData').DocData): readonly string[] {
+function collectAllShortUrls(doc: DocData): readonly string[] {
+  const urls: string[] = [];
+  for (const section of doc.sections) {
+    urls.push(...extractShortUrls(section.content));
+    for (const sub of section.subsections) {
+      urls.push(...extractShortUrls(sub.content));
+    }
+  }
+  return [...new Set(urls)];
+}
+
+function replaceUrlsInDoc(doc: DocData, urlMap: ReadonlyMap<string, string>): DocData {
+  if (urlMap.size === 0) return doc;
+  return {
+    title: doc.title,
+    sections: doc.sections.map((section) => ({
+      title: section.title,
+      content: replaceUrls(section.content, urlMap),
+      subsections: section.subsections.map((sub) => ({
+        title: sub.title,
+        content: replaceUrls(sub.content, urlMap),
+      })),
+    })),
+  };
+}
+
+function collectAllImageUrls(doc: DocData): readonly string[] {
   const urls: string[] = [];
   for (const section of doc.sections) {
     urls.push(...extractImageUrls(section.content));
@@ -62,18 +90,26 @@ async function cacheIssue(row: CsvRow, docsRoot: string, sanitize: (html: string
   writeRawHtml(docsRoot, row.slug, html);
 
   const dom = new JSDOM(html);
-  const docData = parseDocument(dom.window.document, sanitize);
+  let docData = parseDocument(dom.window.document, sanitize);
+
+  const shortUrls = collectAllShortUrls(docData);
+  if (shortUrls.length > 0) {
+    process.stderr.write(`    Resolving ${shortUrls.length} short URLs\n`);
+    const resolvedMap = await resolveShortUrls(shortUrls);
+    docData = replaceUrlsInDoc(docData, resolvedMap);
+    process.stderr.write(`    Resolved ${resolvedMap.size} of ${shortUrls.length} short URLs\n`);
+  }
 
   const imageUrls = collectAllImageUrls(docData);
   const imagesDir = join(docsRoot, row.slug, 'images');
 
-  let urlMap = new Map<string, string>();
+  let imageUrlMap = new Map<string, string>();
   if (imageUrls.length > 0) {
     process.stderr.write(`    Downloading ${imageUrls.length} images\n`);
-    urlMap = new Map(await downloadAllImages(imageUrls, imagesDir));
+    imageUrlMap = new Map(await downloadAllImages(imageUrls, imagesDir));
   }
 
-  const rewrittenDoc = rewriteDocDataImages(docData, urlMap);
+  const rewrittenDoc = rewriteDocDataImages(docData, imageUrlMap);
   writeCachedDoc(docsRoot, row.slug, rewrittenDoc);
 
   const meta: CacheMeta = {

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { sha256 } from './hash';
+import { sha256 } from '../../../scripts/lib/hash';
 
 describe('sha256', () => {
   it('returns a 64-character hex string', () => {

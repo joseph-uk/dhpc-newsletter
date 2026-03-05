@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { extractImageUrls, rewriteImageUrlsInContent, rewriteDocDataImages, buildDeploymentUrlMap } from './contentRewriter';
-import type { DocData } from '../../src/types/DocData';
+import { extractImageUrls, rewriteImageUrlsInContent, rewriteDocDataImages, buildDeploymentUrlMap } from '../../../scripts/lib/contentRewriter';
+import type { DocData } from '../../../src/types/DocData';
 
 describe('extractImageUrls', () => {
   it('extracts Google CDN image URLs from HTML content', () => {

@@ -31,3 +31,48 @@
   line-height: 1.8;
   color: var(--text);
 }
+
+.sectionContent table,
+.subsectionContent table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1em 0;
+  font-size: 0.95em;
+  overflow-x: auto;
+  display: block;
+}
+
+.sectionContent th,
+.subsectionContent th,
+.sectionContent td,
+.subsectionContent td {
+  border: 1px solid #d0d0d0;
+  padding: 0.5em 0.75em;
+  text-align: left;
+  vertical-align: top;
+}
+
+.sectionContent th,
+.subsectionContent th {
+  background: var(--bg-secondary, #f5f5f5);
+  font-weight: bold;
+}
+
+.sectionContent tr:nth-child(even),
+.subsectionContent tr:nth-child(even) {
+  background: var(--bg-secondary, #fafafa);
+}
+
+@media (max-width: 600px) {
+  .sectionContent table,
+  .subsectionContent table {
+    font-size: 0.85em;
+  }
+
+  .sectionContent th,
+  .subsectionContent th,
+  .sectionContent td,
+  .subsectionContent td {
+    padding: 0.35em 0.5em;
+  }
+}

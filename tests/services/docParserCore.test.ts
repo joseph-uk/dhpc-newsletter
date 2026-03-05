@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { JSDOM } from 'jsdom';
-import { parseDocument } from './docParserCore';
+import { parseDocument } from '../../src/services/docParserCore';
 
 const noopSanitize = (html: string): string => html;
 
@@ -141,5 +141,111 @@ describe('parseDocument', () => {
     expect(result.sections[0]?.content).toContain('href="https://example.com"');
     expect(result.sections[0]?.content).toContain('target="_blank"');
     expect(result.sections[0]?.content).toContain('rel="noopener noreferrer"');
+  });
+});
+
+function makeDocWithStyle(styleContent: string, bodyHtml: string): Document {
+  const dom = new JSDOM(
+    `<!DOCTYPE html><html><head><title>TEST</title><style>${styleContent}</style></head><body>${bodyHtml}</body></html>`,
+  );
+  return dom.window.document;
+}
+
+describe('inlineFormattingStyles', () => {
+  it('inlines font-weight:700 as bold', () => {
+    const doc = makeDocWithStyle(
+      '.c5{font-weight:700}',
+      '<h1>Section</h1><p><span class="c5">Bold text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).toContain('font-weight:bold');
+  });
+
+  it('inlines font-weight:900 as bold', () => {
+    const doc = makeDocWithStyle(
+      '.c8{font-weight:900}',
+      '<h1>Section</h1><p><span class="c8">Heavy bold</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).toContain('font-weight:bold');
+  });
+
+  it('does not inline font-weight:400 (normal weight)', () => {
+    const doc = makeDocWithStyle(
+      '.c4{font-weight:400}',
+      '<h1>Section</h1><p><span class="c4">Normal text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).not.toContain('font-weight');
+  });
+
+  it('inlines font-style:italic', () => {
+    const doc = makeDocWithStyle(
+      '.c3{font-style:italic}',
+      '<h1>Section</h1><p><span class="c3">Italic text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).toContain('font-style:italic');
+  });
+
+  it('does not inline font-style:normal', () => {
+    const doc = makeDocWithStyle(
+      '.c4{font-style:normal}',
+      '<h1>Section</h1><p><span class="c4">Normal text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).not.toContain('font-style');
+  });
+
+  it('inlines text-decoration:underline', () => {
+    const doc = makeDocWithStyle(
+      '.c7{text-decoration:underline}',
+      '<h1>Section</h1><p><span class="c7">Underlined text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).toContain('text-decoration:underline');
+  });
+
+  it('does not inline text-decoration:none', () => {
+    const doc = makeDocWithStyle(
+      '.c4{text-decoration:none}',
+      '<h1>Section</h1><p><span class="c4">Normal text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    expect(result.sections[0]?.content).not.toContain('text-decoration');
+  });
+
+  it('handles multiple formatting properties in one class', () => {
+    const doc = makeDocWithStyle(
+      '.c9{font-weight:700;font-style:italic;text-decoration:underline}',
+      '<h1>Section</h1><p><span class="c9">Bold italic underline</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    const content = result.sections[0]?.content ?? '';
+    expect(content).toContain('font-weight:bold');
+    expect(content).toContain('font-style:italic');
+    expect(content).toContain('text-decoration:underline');
+  });
+
+  it('handles element with multiple classes', () => {
+    const doc = makeDocWithStyle(
+      '.c1{font-weight:700}.c2{font-style:italic}',
+      '<h1>Section</h1><p><span class="c1 c2">Bold and italic</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    const content = result.sections[0]?.content ?? '';
+    expect(content).toContain('font-weight:bold');
+    expect(content).toContain('font-style:italic');
+  });
+
+  it('preserves existing inline styles when adding formatting', () => {
+    const doc = makeDocWithStyle(
+      '.c5{font-weight:700}',
+      '<h1>Section</h1><p><span class="c5" style="color:red">Styled text</span></p>',
+    );
+    const result = parseDocument(doc, noopSanitize);
+    const content = result.sections[0]?.content ?? '';
+    expect(content).toContain('color:red');
+    expect(content).toContain('font-weight:bold');
   });
 });
