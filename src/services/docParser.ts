@@ -7,5 +7,5 @@ export function parseGoogleDoc(html: string): DocData {
     throw new Error('parseGoogleDoc: html must not be empty');
   }
   const doc = new DOMParser().parseFromString(html, 'text/html');
-  return parseDocument(doc, (h) => DOMPurify.sanitize(h));
+  return parseDocument(doc, (h) => DOMPurify.sanitize(h, { ADD_ATTR: ['target', 'rel'] }));
 }
