@@ -15,9 +15,12 @@ React/TypeScript rebuild of https://www.dhpc.org.uk/skywords/ — a Google Docs-
 
 ```bash
 npm install
-npm run dev      # local dev server
-npm run build    # production build to dist/
-npm run lint     # ESLint
+npm run dev          # local dev server
+npm run build        # production build to dist/
+npm run lint         # ESLint
+npm run test         # run tests
+npm run test:watch   # run tests in watch mode
+npm run test:coverage # run tests with coverage report
 ```
 
 ## Deployment
@@ -115,16 +118,36 @@ All functions must validate inputs at the top and throw immediately on invalid s
 - If a fix only works for the exact test case provided, it is wrong.
 - Preserve generic functionality — never replace broad logic with narrow patches.
 
+### Test-Driven Development (TDD)
+
+**All code changes must follow TDD. No exceptions.**
+
+1. **Write a failing test first** — the test must fail before any implementation code is written.
+2. **Write the minimum code to pass** — make the test green with the simplest implementation.
+3. **Refactor** — clean up while keeping tests green.
+
+**Bug fixes must reproduce the bug as a failing test before any fix is applied.**
+
+**Coverage requirement: 95% minimum** (branches, functions, lines, statements). Enforced by Vitest coverage thresholds in `vite.config.ts`.
+
+**Test framework**: Vitest with jsdom environment. Tests live next to source files as `*.test.ts` / `*.test.tsx`.
+
+```bash
+npm run test           # run all tests
+npm run test:coverage  # run with coverage enforcement
+```
+
 ### Defence Before Fix
 
-When a bug is found, the first question is: "Can a machine detect this pattern automatically?" Write the lint rule before writing the fix.
+When a bug is found, the first question is: "Can a machine detect this pattern automatically?" Write the lint rule before writing the fix. **Then write a failing test that reproduces the bug.**
 
 **Quality hierarchy** (each layer must pass before the next):
 1. Static analysis — TypeScript strict + ESLint (catches entire classes of bugs)
-2. Build verification — `npm run build` with zero errors/warnings
-3. Manual testing — verify with the real Google Doc
+2. Tests — Vitest with 95% coverage minimum (catches logic bugs)
+3. Build verification — `npm run build` with zero errors/warnings
+4. Manual testing — verify with the real Google Doc
 
-A single lint rule catches every past, present, and future instance of a bug pattern. A single test only catches one instance in one file. Prefer rules over tests where possible.
+A single lint rule catches every past, present, and future instance of a bug pattern. Tests catch logic bugs that types and lints cannot. Both are required.
 
 ### Mandatory Code Review Gate
 

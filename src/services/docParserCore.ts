@@ -87,9 +87,9 @@ function buildSection(h1: Element, nextH1: Element | null, sanitize: Sanitize): 
   const introHtml = sanitize(serialise(introNodes));
 
   const subsections = h2s.map((h2, idx) => {
-    const nextH2 = idx < h2s.length - 1 ? h2s[idx + 1] : null;
+    const nextH2 = h2s[idx + 1];
     const stop = nextH2 !== undefined ? nextH2 : nextH1;
-    return buildSubsection(h2, stop ?? null, sanitize);
+    return buildSubsection(h2, stop, sanitize);
   });
 
   return {
