@@ -110,7 +110,7 @@ async function main(): Promise<void> {
   const { force, slug } = parseArgs(process.argv);
   const projectRoot = join(import.meta.dirname, '..');
   const csvPath = join(projectRoot, 'issues.csv');
-  const docsRoot = join(projectRoot, 'docs');
+  const docsRoot = join(projectRoot, 'data');
 
   process.stderr.write('Reading issues.csv\n');
   const csvContent = readFileSync(csvPath, 'utf-8');

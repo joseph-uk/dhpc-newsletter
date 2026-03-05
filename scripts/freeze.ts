@@ -74,7 +74,7 @@ function buildRegistry(rows: readonly CsvRow[], docsRoot: string): Registry {
 function main(): void {
   const projectRoot = join(import.meta.dirname, '..');
   const csvPath = join(projectRoot, 'issues.csv');
-  const docsRoot = join(projectRoot, 'docs');
+  const docsRoot = join(projectRoot, 'data');
   const publicDir = join(projectRoot, 'public');
   const issuesDir = join(publicDir, 'issues');
 
