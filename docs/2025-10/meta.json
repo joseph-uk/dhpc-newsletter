@@ -1,7 +1,8 @@
 {
   "slug": "2025-10",
   "docUrl": "https://docs.google.com/document/d/e/2PACX-1vSszeGuJeE0B2_GuIZtDWnz-kaCzH1TdJ9IjuXjGaAsSB2Rrcax1PSAmNF7RBgSGgzrKQerIWbCiF3R/pub",
-  "fetchedAt": "2026-03-05T08:42:51.004Z",
+  "fetchedAt": "2026-03-05T09:09:15.565Z",
   "issueStatus": "frozen",
-  "imageCount": 15
+  "imageCount": 15,
+  "contentHash": "596272dc58e76f6d511c7948ba1a50223d16947cb9cebeb378567c2f3dc60c03"
 }
