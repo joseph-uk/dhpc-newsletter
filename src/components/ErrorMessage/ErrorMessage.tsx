@@ -14,7 +14,7 @@ export function ErrorMessage({ message, onRetry }: ErrorMessageProps): React.JSX
         Try Again
       </button>
       <p className={styles['altLink']}>
-        <a href={window.location.pathname}>Enter a different URL</a>
+        <a href={import.meta.env.BASE_URL}>Enter a different URL</a>
       </p>
     </div>
   );

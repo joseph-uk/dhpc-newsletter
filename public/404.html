@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting...</title>
+    <script>
+      // GitHub Pages SPA redirect: store the path and redirect to index
+      sessionStorage.setItem('spa-redirect', window.location.pathname + window.location.search);
+      window.location.replace('/dhpc-newsletter/');
+    </script>
+  </head>
+  <body></body>
+</html>

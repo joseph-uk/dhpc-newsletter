@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "cache": "tsx scripts/cache.ts",
     "freeze": "tsx scripts/freeze.ts",
     "lint": "eslint .",
     "test": "vitest run",
