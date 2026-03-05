@@ -12,6 +12,27 @@ const MONTH_MAP: ReadonlyMap<string, string> = new Map([
   ['september', '09'], ['october', '10'], ['november', '11'], ['december', '12'],
 ]);
 
+export function extractFolderId(input: string): string {
+  if (input.length === 0) {
+    throw new Error('extractFolderId: folder ID must not be empty');
+  }
+
+  const match = input.match(/\/folders\/([^/?]+)/);
+  if (match !== null) {
+    const id = match[1];
+    if (id === undefined || id.length === 0) {
+      throw new Error('extractFolderId: could not extract folder ID from URL');
+    }
+    return id;
+  }
+
+  if (input.startsWith('http')) {
+    throw new Error('extractFolderId: could not extract folder ID from URL');
+  }
+
+  return input;
+}
+
 export function buildDocUrl(docId: string): string {
   if (docId.length === 0) {
     throw new Error('buildDocUrl: docId must not be empty');

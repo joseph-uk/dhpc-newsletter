@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildDocUrl, extractSlugFromTitle, parseDriveFileList } from './driveClient';
+import { buildDocUrl, extractFolderId, extractSlugFromTitle, parseDriveFileList } from './driveClient';
 
 describe('buildDocUrl', () => {
   it('constructs a published URL from a document ID', () => {
@@ -50,6 +50,37 @@ describe('extractSlugFromTitle', () => {
       const expected = `2025-${String(index + 1).padStart(2, '0')}`;
       expect(extractSlugFromTitle(`${month} 2025`)).toBe(expected);
     });
+  });
+});
+
+describe('extractFolderId', () => {
+  it('extracts folder ID from a full Drive URL', () => {
+    expect(extractFolderId('https://drive.google.com/drive/folders/1aBcDeFgHiJkLmNoPqRsTuVwXyZ'))
+      .toBe('1aBcDeFgHiJkLmNoPqRsTuVwXyZ');
+  });
+
+  it('extracts folder ID from a URL with query params', () => {
+    expect(extractFolderId('https://drive.google.com/drive/folders/1aBcDeFg?resourcekey=0-abc'))
+      .toBe('1aBcDeFg');
+  });
+
+  it('extracts folder ID from a URL with trailing slash', () => {
+    expect(extractFolderId('https://drive.google.com/drive/folders/1aBcDeFg/'))
+      .toBe('1aBcDeFg');
+  });
+
+  it('returns a plain folder ID unchanged', () => {
+    expect(extractFolderId('1aBcDeFgHiJkLmNoPqRsTuVwXyZ'))
+      .toBe('1aBcDeFgHiJkLmNoPqRsTuVwXyZ');
+  });
+
+  it('throws on empty string', () => {
+    expect(() => extractFolderId('')).toThrow('folder ID must not be empty');
+  });
+
+  it('throws on a URL with no folder ID segment', () => {
+    expect(() => extractFolderId('https://drive.google.com/drive/folders/'))
+      .toThrow('could not extract folder ID');
   });
 });
 

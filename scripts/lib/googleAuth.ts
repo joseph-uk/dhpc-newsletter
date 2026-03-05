@@ -1,5 +1,6 @@
 import { google } from 'googleapis';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
+import { createServer } from 'node:http';
 import { join } from 'node:path';
 
 export interface ClientSecret {
@@ -167,18 +168,12 @@ export async function authenticate(
     return oauth2Client;
   }
 
-  const authUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: ['https://www.googleapis.com/auth/drive.readonly'],
+  const authResult = await getAuthCodeViaLocalServer(oauth2Client);
+
+  const { tokens } = await oauth2Client.getToken({
+    code: authResult.code,
+    redirect_uri: authResult.redirectUri,
   });
-
-  process.stderr.write('\nAuthorise this app by visiting this URL:\n');
-  process.stderr.write(`${authUrl}\n\n`);
-  process.stderr.write('Enter the authorisation code: ');
-
-  const code = await readLineFromStdin();
-
-  const { tokens } = await oauth2Client.getToken(code);
 
   if (
     typeof tokens['access_token'] !== 'string' ||
@@ -203,18 +198,68 @@ export async function authenticate(
   return oauth2Client;
 }
 
-function readLineFromStdin(): Promise<string> {
+interface AuthCodeResult {
+  readonly code: string;
+  readonly redirectUri: string;
+}
+
+function getAuthCodeViaLocalServer(
+  oauth2Client: InstanceType<typeof google.auth.OAuth2>,
+): Promise<AuthCodeResult> {
   return new Promise((resolve, reject) => {
-    let data = '';
-    process.stdin.setEncoding('utf-8');
-    process.stdin.on('data', (chunk: string) => {
-      data += chunk;
-      if (data.includes('\n')) {
-        process.stdin.pause();
-        resolve(data.trim());
+    let serverRedirectUri = '';
+
+    const server = createServer((req, res) => {
+      if (req.url === undefined) {
+        res.writeHead(400);
+        res.end('Bad request');
+        return;
       }
+
+      const url = new URL(req.url, 'http://localhost');
+      const code = url.searchParams.get('code');
+      const error = url.searchParams.get('error');
+
+      if (error !== null) {
+        res.writeHead(200, { 'Content-Type': 'text/html' });
+        res.end('<h1>Authorisation denied</h1><p>You can close this tab.</p>');
+        server.close();
+        reject(new Error(`Google authorisation denied: ${error}`));
+        return;
+      }
+
+      if (code === null || code.length === 0) {
+        res.writeHead(400, { 'Content-Type': 'text/html' });
+        res.end('<h1>Missing code</h1><p>No authorisation code received.</p>');
+        return;
+      }
+
+      res.writeHead(200, { 'Content-Type': 'text/html' });
+      res.end('<h1>Authorised</h1><p>You can close this tab and return to your terminal.</p>');
+      server.close();
+      resolve({ code, redirectUri: serverRedirectUri });
     });
-    process.stdin.on('error', reject);
-    process.stdin.resume();
+
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (address === null || typeof address === 'string') {
+        reject(new Error('Failed to start local auth server'));
+        return;
+      }
+
+      serverRedirectUri = `http://127.0.0.1:${String(address.port)}`;
+
+      const authUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: ['https://www.googleapis.com/auth/drive.readonly'],
+        redirect_uri: serverRedirectUri,
+      });
+
+      process.stderr.write('\nOpen this URL in your browser to authorise:\n');
+      process.stderr.write(`${authUrl}\n\n`);
+      process.stderr.write('Waiting for authorisation...\n');
+    });
+
+    server.on('error', reject);
   });
 }

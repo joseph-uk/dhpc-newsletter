@@ -1,7 +1,7 @@
 import { readFileSync, appendFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { authenticate } from './lib/googleAuth';
-import { listDocsInFolder, buildDocUrl, extractSlugFromTitle } from './lib/driveClient';
+import { listDocsInFolder, buildDocUrl, extractFolderId, extractSlugFromTitle } from './lib/driveClient';
 import type { DriveDoc } from './lib/driveClient';
 import { parseCsvContent, formatCsvRow } from './lib/csv';
 import type { CsvRow } from './lib/csv';
@@ -14,7 +14,7 @@ interface CliArgs {
 }
 
 function parseArgs(argv: readonly string[]): CliArgs {
-  let folderId: string | null = null;
+  let folderInput: string | null = null;
   let status: IssueStatus = 'published';
   let dryRun = false;
 
@@ -22,11 +22,16 @@ function parseArgs(argv: readonly string[]): CliArgs {
     const arg = argv[i];
     if (arg === undefined) continue;
 
-    if (arg.startsWith('--folder-id=')) {
-      folderId = arg.slice('--folder-id='.length);
+    if (arg.startsWith('--folder=')) {
+      folderInput = arg.slice('--folder='.length);
+    } else if (arg === '--folder' && i + 1 < argv.length) {
+      i++;
+      folderInput = argv[i] ?? null;
+    } else if (arg.startsWith('--folder-id=')) {
+      folderInput = arg.slice('--folder-id='.length);
     } else if (arg === '--folder-id' && i + 1 < argv.length) {
       i++;
-      folderId = argv[i] ?? null;
+      folderInput = argv[i] ?? null;
     } else if (arg.startsWith('--status=')) {
       const val = arg.slice('--status='.length);
       if (val !== 'published' && val !== 'pre-release' && val !== 'frozen') {
@@ -38,13 +43,14 @@ function parseArgs(argv: readonly string[]): CliArgs {
     }
   }
 
-  if (folderId === null || folderId.length === 0) {
+  if (folderInput === null || folderInput.length === 0) {
     throw new Error(
-      'Missing required --folder-id argument.\n' +
-      'Usage: npm run gdrive:discover -- --folder-id=<FOLDER_ID> [--status=published] [--dry-run]',
+      'Missing required --folder argument.\n' +
+      'Usage: npm run gdrive:discover -- --folder=<URL_OR_ID> [--status=published] [--dry-run]',
     );
   }
 
+  const folderId = extractFolderId(folderInput);
   return { folderId, status, dryRun };
 }
 
