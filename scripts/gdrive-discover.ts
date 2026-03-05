@@ -1,4 +1,4 @@
-import { readFileSync, appendFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { authenticate } from './lib/googleAuth';
 import { listDocsInFolder, buildDocUrl, extractFolderId, extractSlugFromTitle } from './lib/driveClient';
@@ -144,15 +144,17 @@ async function main(): Promise<void> {
   }
 
   if (args.dryRun) {
-    process.stderr.write('\nDry run — no changes made. Remove --dry-run to append to CSV.\n');
+    process.stderr.write('\nDry run — no changes made. Remove --dry-run to write to CSV.\n');
     return;
   }
 
-  for (const row of newRows) {
-    appendFileSync(csvPath, `${formatCsvRow(row)}\n`, 'utf-8');
-  }
+  const allRows = [...existingRows, ...newRows];
+  allRows.sort((a, b) => a.slug.localeCompare(b.slug));
 
-  process.stderr.write(`\nAppended ${newRows.length} rows to issues.csv\n`);
+  const csvLines = ['slug,title,doc_url,status', ...allRows.map(formatCsvRow)];
+  writeFileSync(csvPath, csvLines.join('\n') + '\n', 'utf-8');
+
+  process.stderr.write(`\nAdded ${newRows.length} rows to issues.csv (${allRows.length} total, sorted by slug)\n`);
   process.stderr.write('Next steps:\n');
   process.stderr.write('  1. Review issues.csv\n');
   process.stderr.write('  2. Run: npm run cache\n');
