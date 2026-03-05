@@ -10,6 +10,7 @@ describe('isCacheStale', () => {
       fetchedAt: new Date().toISOString(),
       issueStatus: 'frozen',
       imageCount: 5,
+      contentHash: 'abc123def456abc123def456abc123de',
     };
     expect(isCacheStale(meta, 86400000)).toBe(false);
   });
@@ -22,6 +23,7 @@ describe('isCacheStale', () => {
       fetchedAt: oldDate,
       issueStatus: 'published',
       imageCount: 3,
+      contentHash: 'abc123def456abc123def456abc123de',
     };
     expect(isCacheStale(meta, 1000)).toBe(true);
   });
@@ -34,34 +36,52 @@ describe('isCacheStale', () => {
       fetchedAt: recentDate,
       issueStatus: 'published',
       imageCount: 0,
+      contentHash: 'abc123def456abc123def456abc123de',
     };
     expect(isCacheStale(meta, 86400000)).toBe(false);
   });
 });
 
 describe('validateCacheMeta', () => {
+  const validInput = {
+    slug: '2025-01',
+    docUrl: 'https://example.com',
+    fetchedAt: '2025-01-01T00:00:00.000Z',
+    issueStatus: 'frozen',
+    imageCount: 5,
+    contentHash: '5d41402abc4b2a76b9719d911017c592',
+  };
+
   it('returns valid CacheMeta for correct input', () => {
-    const input = {
-      slug: '2025-01',
-      docUrl: 'https://example.com',
-      fetchedAt: '2025-01-01T00:00:00.000Z',
-      issueStatus: 'frozen',
-      imageCount: 5,
-    };
-    const result = validateCacheMeta(input);
+    const result = validateCacheMeta(validInput);
     expect(result.slug).toBe('2025-01');
     expect(result.imageCount).toBe(5);
+    expect(result.contentHash).toBe('5d41402abc4b2a76b9719d911017c592');
   });
 
   it('throws on missing slug', () => {
-    expect(() => validateCacheMeta({ docUrl: 'x', fetchedAt: 'x', issueStatus: 'frozen', imageCount: 0 })).toThrow('slug');
+    expect(() => validateCacheMeta({ ...validInput, slug: undefined })).toThrow('slug');
   });
 
   it('throws on invalid issueStatus', () => {
-    expect(() => validateCacheMeta({ slug: 'x', docUrl: 'x', fetchedAt: 'x', issueStatus: 'bad', imageCount: 0 })).toThrow('issueStatus');
+    expect(() => validateCacheMeta({ ...validInput, issueStatus: 'bad' })).toThrow('issueStatus');
   });
 
   it('throws on non-object input', () => {
     expect(() => validateCacheMeta(null)).toThrow('expected object');
+  });
+
+  it('throws on missing contentHash', () => {
+    expect(() => validateCacheMeta({ ...validInput, contentHash: undefined })).toThrow('contentHash');
+  });
+
+  it('throws on non-string contentHash', () => {
+    expect(() => validateCacheMeta({ ...validInput, contentHash: 123 })).toThrow('contentHash');
+  });
+
+  it('throws on missing contentHash', () => {
+    const { contentHash: _, ...withoutHash } = validInput;
+    void _;
+    expect(() => validateCacheMeta(withoutHash)).toThrow('contentHash');
   });
 });

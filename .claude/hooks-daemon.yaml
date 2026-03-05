@@ -77,7 +77,7 @@ handlers:
 
     # CODE QUALITY HANDLERS (Priority 25-45) - Optional but recommended
     qa_suppression:        # Unified multi-language QA suppression blocker (11 languages)
-      enabled: false       # Enable for strict code quality control
+      enabled: true        # Blocks @ts-ignore, eslint-disable, etc.
       priority: 30
       # options:
       #   languages:       # Restrict to specific languages (default: ALL)
@@ -87,11 +87,11 @@ handlers:
       #     - PHP
 
     tdd_enforcement:       # Enforces test-first development
-      enabled: false       # Enable for strict TDD workflow
+      enabled: true        # Enforces test-first development
       priority: 32
 
     lsp_enforcement:       # Steers LLMs toward LSP tools instead of Grep/Bash grep
-      enabled: false       # Enable when LSP is configured
+      enabled: true        # Steers toward LSP tools
       priority: 38
       options:
         mode: block_once       # advisory | block_once | strict
@@ -105,7 +105,7 @@ handlers:
         track_plans_in_project: "CLAUDE/Plan"  # Must match markdown_organization setting
 
     task_tdd_advisor:      # Advises on TDD workflow for tasks
-      enabled: false       # Enable for TDD guidance
+      enabled: true        # TDD guidance for task workflow
       priority: 36
 
     gh_issue_comments:     # Requires --comments flag for gh issue view
@@ -133,11 +133,11 @@ handlers:
       priority: 48
 
     validate_instruction_content: # Blocks ephemeral content in CLAUDE.md/README.md
-      enabled: false       # Enable to prevent implementation logs in instruction files
+      enabled: true        # Prevents implementation logs in instruction files
       priority: 49
 
     npm_command:           # Restricts npm commands to approved list
-      enabled: false       # Enable for strict npm usage control
+      enabled: true        # Strict npm usage control
       priority: 50
 
     markdown_organization: # Enforces markdown file organization rules & plan tracking
@@ -178,7 +178,7 @@ handlers:
       priority: 55
 
     british_english:       # Warns about American English spelling
-      enabled: false       # Enable if you prefer British English
+      enabled: true        # UK project - use British English
       priority: 60
 
   # PostToolUse handlers (run after tool execution)
@@ -188,11 +188,11 @@ handlers:
       priority: 10
 
     lint_on_edit:              # Language-aware lint validation after Write/Edit
-      enabled: false           # Enable for automatic lint validation (Shell, Python, Go, Rust, etc.)
+      enabled: true            # Automatic lint validation after edits
       priority: 25
 
     validate_eslint_on_write:  # Runs ESLint after file writes
-      enabled: false           # Enable for automatic ESLint validation
+      enabled: true            # Automatic ESLint validation after writes
       priority: 20
 
   # SessionStart handlers (run when session starts)
@@ -214,17 +214,17 @@ handlers:
       priority: 56
 
     workflow_state_restoration:  # Restores workflow state after compaction
-      enabled: false             # Enable for workflow state management
+      enabled: true              # Restore workflow state after compaction
       priority: 60
 
   # PreCompact handlers (run before conversation compaction)
   pre_compact:
     transcript_archiver:  # Archives transcripts before compaction
-      enabled: false      # Enable to save conversation history
+      enabled: true       # Save conversation history
       priority: 10
 
     workflow_state_pre_compact:  # Saves workflow state before compaction
-      enabled: false             # Enable for workflow state management
+      enabled: true              # Save workflow state before compaction
       priority: 20
 
   # SessionEnd handlers (run when session ends)
@@ -250,7 +250,7 @@ handlers:
       priority: 10
 
     critical_thinking_advisory:  # Periodic advisory encouraging critical evaluation
-      enabled: false              # Enable for critical thinking nudges on substantial prompts
+      enabled: true               # Critical thinking nudges on substantial prompts
       priority: 55
 
   # Other hook events
@@ -274,7 +274,7 @@ handlers:
       priority: 30
 
     task_completion_checker:  # Checks for task completion
-      enabled: false           # Enable if using task management system
+      enabled: true            # Task completion checking
       priority: 20
 
   # Status line handlers (format daemon-based status display)

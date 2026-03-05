@@ -5,6 +5,7 @@ export interface Issue {
   readonly title: string;
   readonly docUrl: string;
   readonly status: IssueStatus;
+  readonly contentHash: string;
 }
 
 export interface Registry {

@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import type { Issue, Registry } from '../src/types/Registry';
 import { parseCsvContent } from './lib/csv';
 import type { CsvRow } from './lib/csv';
-import { readCachedDoc } from './lib/cache';
+import { readCachedDoc, readCacheMeta } from './lib/cache';
 import { buildDeploymentUrlMap, rewriteDocDataImages } from './lib/contentRewriter';
 
 function parseCsv(csvPath: string): readonly CsvRow[] {
@@ -52,12 +52,21 @@ function freezeIssue(row: CsvRow, docsRoot: string, issuesDir: string): void {
   process.stderr.write(`    Done\n`);
 }
 
-function buildRegistry(rows: readonly CsvRow[]): Registry {
+function getContentHash(docsRoot: string, slug: string): string {
+  const meta = readCacheMeta(docsRoot, slug);
+  if (meta === null) {
+    throw new Error(`No cache meta for "${slug}". Run 'npm run cache' first.`);
+  }
+  return meta.contentHash;
+}
+
+function buildRegistry(rows: readonly CsvRow[], docsRoot: string): Registry {
   const issues: readonly Issue[] = rows.map((row) => ({
     slug: row.slug,
     title: row.title,
     docUrl: row.docUrl,
     status: row.status,
+    contentHash: getContentHash(docsRoot, row.slug),
   }));
   return { issues };
 }
@@ -75,19 +84,18 @@ function main(): void {
 
   mkdirSync(issuesDir, { recursive: true });
 
-  const frozenRows = rows.filter((row) => row.status === 'frozen');
-  process.stderr.write(`Freezing ${frozenRows.length} frozen issues from cache\n`);
+  process.stderr.write(`Freezing ${rows.length} issues from cache\n`);
 
-  for (const row of frozenRows) {
+  for (const row of rows) {
     freezeIssue(row, docsRoot, issuesDir);
   }
 
-  const registry: Registry = buildRegistry(rows);
+  const registry: Registry = buildRegistry(rows, docsRoot);
   const registryPath = join(publicDir, 'registry.json');
   writeFileSync(registryPath, JSON.stringify(registry, null, 2), 'utf-8');
   process.stderr.write(`Written: ${registryPath}\n`);
 
-  process.stderr.write(`Done. Registry has ${registry.issues.length} issues, ${frozenRows.length} frozen.\n`);
+  process.stderr.write(`Done. Registry has ${registry.issues.length} issues.\n`);
 }
 
 try {

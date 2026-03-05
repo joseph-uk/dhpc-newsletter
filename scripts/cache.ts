@@ -9,6 +9,7 @@ import { readCacheMeta, writeCacheMeta, writeCachedDoc, writeRawHtml, isCacheSta
 import type { CacheMeta } from './lib/cache';
 import { extractImageUrls, rewriteDocDataImages } from './lib/contentRewriter';
 import { downloadAllImages } from './lib/imageDownloader';
+import { sha256 } from './lib/hash';
 
 const TTL_FROZEN = Infinity;
 const TTL_PUBLISHED = 24 * 60 * 60 * 1000;
@@ -35,7 +36,8 @@ function createSanitize(jsdomWindow: InstanceType<typeof JSDOM>['window']): (htm
 }
 
 async function fetchDocHtml(docUrl: string): Promise<string> {
-  const response = await fetch(docUrl, { cache: 'no-store' });
+  const fetchUrl = docUrl.includes('?embedded=true') ? docUrl : `${docUrl}?embedded=true`;
+  const response = await fetch(fetchUrl, { cache: 'no-store' });
   if (!response.ok) {
     throw new Error(`Failed to fetch "${docUrl}": HTTP ${response.status} ${response.statusText}`);
   }
@@ -80,6 +82,7 @@ async function cacheIssue(row: CsvRow, docsRoot: string, sanitize: (html: string
     fetchedAt: new Date().toISOString(),
     issueStatus: row.status,
     imageCount: imageUrls.length,
+    contentHash: sha256(html),
   };
   writeCacheMeta(docsRoot, row.slug, meta);
 

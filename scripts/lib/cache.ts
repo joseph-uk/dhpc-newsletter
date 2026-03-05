@@ -9,6 +9,7 @@ export interface CacheMeta {
   readonly fetchedAt: string;
   readonly issueStatus: IssueStatus;
   readonly imageCount: number;
+  readonly contentHash: string;
 }
 
 const VALID_STATUSES: readonly IssueStatus[] = ['pre-release', 'published', 'frozen'];
@@ -41,6 +42,9 @@ export function validateCacheMeta(value: unknown): CacheMeta {
   if (typeof value['imageCount'] !== 'number') {
     throw new Error('validateCacheMeta: missing or invalid imageCount');
   }
+  if (typeof value['contentHash'] !== 'string') {
+    throw new Error('validateCacheMeta: missing or invalid contentHash');
+  }
 
   return {
     slug: value['slug'],
@@ -48,6 +52,7 @@ export function validateCacheMeta(value: unknown): CacheMeta {
     fetchedAt: value['fetchedAt'],
     issueStatus: value['issueStatus'],
     imageCount: value['imageCount'],
+    contentHash: value['contentHash'],
   };
 }
 
@@ -65,8 +70,12 @@ export function ensureCacheDir(docsRoot: string, slug: string): string {
 export function readCacheMeta(docsRoot: string, slug: string): CacheMeta | null {
   const metaPath = join(docsRoot, slug, 'meta.json');
   if (!existsSync(metaPath)) return null;
-  const raw: unknown = JSON.parse(readFileSync(metaPath, 'utf-8'));
-  return validateCacheMeta(raw);
+  try {
+    const raw: unknown = JSON.parse(readFileSync(metaPath, 'utf-8'));
+    return validateCacheMeta(raw);
+  } catch {
+    return null;
+  }
 }
 
 export function writeCacheMeta(docsRoot: string, slug: string, meta: CacheMeta): void {

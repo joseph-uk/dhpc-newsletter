@@ -14,7 +14,8 @@ function isIssue(value: unknown): value is Issue {
     typeof value['slug'] === 'string' && value['slug'].length > 0 &&
     typeof value['title'] === 'string' && value['title'].length > 0 &&
     typeof value['docUrl'] === 'string' &&
-    isIssueStatus(value['status'])
+    isIssueStatus(value['status']) &&
+    typeof value['contentHash'] === 'string'
   );
 }
 

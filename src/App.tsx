@@ -6,6 +6,7 @@ import { parseGoogleDoc } from './services/docParser';
 import { loadRegistry } from './services/registry';
 import { loadFrozenDoc } from './services/frozenDoc';
 import { checkPassword } from './services/passwordCheck';
+import { checkContentFreshness } from './services/freshnessCheck';
 import { getCurrentRoute, navigateTo, buildPath, getBasePath, slugify, findArticleIndex, redirectHashUrls } from './services/router';
 import type { Route } from './services/router';
 import { Header } from './components/Header/Header';
@@ -36,11 +37,24 @@ function toErrorMessage(err: unknown): string {
   return err instanceof Error ? err.message : String(err);
 }
 
-function loadIssueDocAsync(issue: Issue): Promise<DocData> {
-  if (issue.status === 'frozen') {
-    return loadFrozenDoc(issue.slug);
-  }
-  return loadDoc(issue.docUrl);
+function loadIssueDocAsync(slug: string): Promise<DocData> {
+  return loadFrozenDoc(slug);
+}
+
+function startFreshnessCheck(
+  issue: Issue,
+  onFreshDoc: (doc: DocData) => void,
+): void {
+  if (issue.status === 'frozen') return;
+
+  void fetchGoogleDoc(issue.docUrl)
+    .then((html) => checkContentFreshness(html, issue.contentHash))
+    .then((freshDoc) => {
+      if (freshDoc !== null) {
+        onFreshDoc(freshDoc);
+      }
+    })
+    .catch((): undefined => undefined);
 }
 
 function resolveArticleSection(doc: DocData, articleSlug: string): number | null {
@@ -57,6 +71,13 @@ export default function App(): React.JSX.Element {
     if (route.kind === 'doc') return { status: 'loading', registry: null };
     return { status: 'registry-loading' };
   });
+
+  const handleFreshDoc = useCallback((doc: DocData) => {
+    setState((prev) => {
+      if (prev.status !== 'loaded') return prev;
+      return { ...prev, doc };
+    });
+  }, []);
 
   const handleRoute = useCallback((route: Route, registry: Registry) => {
     registryRef.current = registry;
@@ -77,10 +98,11 @@ export default function App(): React.JSX.Element {
         return;
       }
       setState({ status: 'loading', registry });
-      loadIssueDocAsync(issue)
+      loadIssueDocAsync(issue.slug)
         .then((doc) => {
           const section = route.kind === 'article' ? resolveArticleSection(doc, route.articleSlug) : null;
           setState({ status: 'loaded', registry, doc, currentSection: section });
+          startFreshnessCheck(issue, handleFreshDoc);
         })
         .catch((err: unknown) => setState({ status: 'error', registry, message: toErrorMessage(err) }));
       return;
@@ -149,8 +171,11 @@ export default function App(): React.JSX.Element {
           return;
         }
         setState({ status: 'loading', registry });
-        loadIssueDocAsync(issue)
-          .then((doc) => setState({ status: 'loaded', registry, doc, currentSection: null }))
+        loadIssueDocAsync(issue.slug)
+          .then((doc) => {
+            setState({ status: 'loaded', registry, doc, currentSection: null });
+            startFreshnessCheck(issue, handleFreshDoc);
+          })
           .catch((err: unknown) => setState({ status: 'error', registry, message: toErrorMessage(err) }));
       })
       .catch((err: unknown) => {
