@@ -167,6 +167,7 @@ async function main(): Promise<void> {
 
   let cached = 0;
   let skipped = 0;
+  let failed = 0;
 
   for (const row of rows) {
     const meta = readCacheMeta(docsRoot, row.slug);
@@ -175,11 +176,17 @@ async function main(): Promise<void> {
       skipped++;
       continue;
     }
-    await cacheIssue(row, docsRoot, sanitize);
-    cached++;
+    try {
+      await cacheIssue(row, docsRoot, sanitize);
+      cached++;
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      process.stderr.write(`  FAILED ${row.slug}: ${message}\n`);
+      failed++;
+    }
   }
 
-  process.stderr.write(`Done. Cached: ${cached}, Skipped: ${skipped}\n`);
+  process.stderr.write(`Done. Cached: ${cached}, Skipped: ${skipped}, Failed: ${failed}\n`);
 }
 
 main().catch((err: unknown) => {
