@@ -52,6 +52,10 @@ export function parseCsvRow(line: string, lineNumber: number): CsvRow {
   };
 }
 
+export function formatCsvRow(row: CsvRow): string {
+  return `${row.slug},${row.title},${row.docUrl},${row.status}`;
+}
+
 export function parseCsvContent(content: string): readonly CsvRow[] {
   const lines = content.split('\n').filter((line) => line.trim() !== '');
 

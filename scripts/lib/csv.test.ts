@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvRow, parseCsvContent } from './csv';
+import { parseCsvRow, parseCsvContent, formatCsvRow } from './csv';
 
 describe('parseCsvRow', () => {
   it('parses a valid CSV row', () => {
@@ -75,5 +75,23 @@ describe('parseCsvContent', () => {
   it('returns empty array when only header present', () => {
     const rows = parseCsvContent('slug,title,doc_url,status\n');
     expect(rows).toHaveLength(0);
+  });
+});
+
+describe('formatCsvRow', () => {
+  it('formats a row as comma-separated values', () => {
+    const result = formatCsvRow({
+      slug: '2025-01',
+      title: 'January 2025',
+      docUrl: 'https://docs.google.com/doc/pub',
+      status: 'frozen',
+    });
+    expect(result).toBe('2025-01,January 2025,https://docs.google.com/doc/pub,frozen');
+  });
+
+  it('round-trips through parse and format', () => {
+    const line = '2025-03,March 2025,https://example.com/pub,published';
+    const row = parseCsvRow(line, 1);
+    expect(formatCsvRow(row)).toBe(line);
   });
 });

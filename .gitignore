@@ -8,5 +8,8 @@ dist/
 public/registry.json
 public/issues/
 
+# Google API credentials and tokens (NEVER commit)
+scripts/.credentials/
+
 # Dependencies
 node_modules/
