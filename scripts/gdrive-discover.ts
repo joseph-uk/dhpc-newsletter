@@ -114,11 +114,6 @@ async function main(): Promise<void> {
   process.stderr.write(`Already in CSV: ${existingRows.length}\n`);
   process.stderr.write(`New documents: ${newDocs.length}\n`);
 
-  if (newDocs.length === 0) {
-    process.stderr.write('Nothing to add.\n');
-    return;
-  }
-
   const newRows: CsvRow[] = [];
   for (const doc of newDocs) {
     const slug = extractSlugFromTitle(doc.name);
@@ -138,13 +133,8 @@ async function main(): Promise<void> {
     newRows.push(row);
   }
 
-  if (newRows.length === 0) {
-    process.stderr.write('No parseable documents to add.\n');
-    return;
-  }
-
   if (args.dryRun) {
-    process.stderr.write('\nDry run — no changes made. Remove --dry-run to write to CSV.\n');
+    process.stderr.write(`\nDry run — ${newRows.length} new rows would be added. Remove --dry-run to write.\n`);
     return;
   }
 
@@ -154,11 +144,15 @@ async function main(): Promise<void> {
   const csvLines = ['slug,title,doc_url,status', ...allRows.map(formatCsvRow)];
   writeFileSync(csvPath, csvLines.join('\n') + '\n', 'utf-8');
 
-  process.stderr.write(`\nAdded ${newRows.length} rows to issues.csv (${allRows.length} total, sorted by slug)\n`);
-  process.stderr.write('Next steps:\n');
-  process.stderr.write('  1. Review issues.csv\n');
-  process.stderr.write('  2. Run: npm run cache\n');
-  process.stderr.write('  3. Run: npm run freeze\n');
+  if (newRows.length > 0) {
+    process.stderr.write(`\nAdded ${newRows.length} rows to issues.csv (${allRows.length} total, sorted)\n`);
+    process.stderr.write('Next steps:\n');
+    process.stderr.write('  1. Review issues.csv\n');
+    process.stderr.write('  2. Run: npm run cache\n');
+    process.stderr.write('  3. Run: npm run freeze\n');
+  } else {
+    process.stderr.write(`\nNo new rows. CSV sorted (${allRows.length} entries).\n`);
+  }
 }
 
 main().catch((err: unknown) => {

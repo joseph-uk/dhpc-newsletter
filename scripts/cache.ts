@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom';
 import DOMPurify from 'dompurify';
 import { readFileSync } from 'node:fs';
 import { parseDocument } from '../src/services/docParserCore';
-import { parseCsvContent } from './lib/csv';
+import { parseCsvContent, isActiveRow } from './lib/csv';
 import type { CsvRow } from './lib/csv';
 import { readCacheMeta, writeCacheMeta, writeCachedDoc, writeRawHtml, isCacheStale } from './lib/cache';
 import type { CacheMeta } from './lib/cache';
@@ -114,7 +114,7 @@ async function main(): Promise<void> {
 
   process.stderr.write('Reading issues.csv\n');
   const csvContent = readFileSync(csvPath, 'utf-8');
-  const allRows = parseCsvContent(csvContent);
+  const allRows = parseCsvContent(csvContent).filter(isActiveRow);
 
   const rows = slug !== null
     ? allRows.filter((row) => row.slug === slug)

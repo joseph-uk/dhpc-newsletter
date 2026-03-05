@@ -1,7 +1,7 @@
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, copyFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import type { Issue, Registry } from '../src/types/Registry';
-import { parseCsvContent } from './lib/csv';
+import { parseCsvContent, isActiveRow } from './lib/csv';
 import type { CsvRow } from './lib/csv';
 import { readCachedDoc, readCacheMeta } from './lib/cache';
 import { buildDeploymentUrlMap, rewriteDocDataImages } from './lib/contentRewriter';
@@ -79,8 +79,9 @@ function main(): void {
   const issuesDir = join(publicDir, 'issues');
 
   process.stderr.write('Reading issues.csv\n');
-  const rows = parseCsv(csvPath);
-  process.stderr.write(`Found ${rows.length} issues\n`);
+  const allCsvRows = parseCsv(csvPath);
+  const rows = allCsvRows.filter(isActiveRow);
+  process.stderr.write(`Found ${rows.length} active issues (${allCsvRows.length - rows.length} disabled)\n`);
 
   mkdirSync(issuesDir, { recursive: true });
 

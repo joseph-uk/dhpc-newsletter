@@ -1,16 +1,24 @@
 import type { IssueStatus } from '../../src/types/Registry';
 
+export type CsvStatus = IssueStatus | `disabled:${string}`;
+
 const VALID_STATUSES: readonly string[] = ['pre-release', 'published', 'frozen'] satisfies readonly IssueStatus[];
 
-function isIssueStatus(value: string): value is IssueStatus {
-  return VALID_STATUSES.includes(value);
+function isValidCsvStatus(value: string): value is CsvStatus {
+  if (VALID_STATUSES.includes(value)) return true;
+  if (value.startsWith('disabled:') && value.length > 'disabled:'.length) return true;
+  return false;
 }
 
 export interface CsvRow {
   readonly slug: string;
   readonly title: string;
   readonly docUrl: string;
-  readonly status: IssueStatus;
+  readonly status: CsvStatus;
+}
+
+export function isActiveRow(row: CsvRow): row is CsvRow & { readonly status: IssueStatus } {
+  return !row.status.startsWith('disabled:');
 }
 
 export function parseCsvRow(line: string, lineNumber: number): CsvRow {
@@ -38,17 +46,18 @@ export function parseCsvRow(line: string, lineNumber: number): CsvRow {
   }
 
   const trimmedStatus = status.trim();
-  if (!isIssueStatus(trimmedStatus)) {
+  if (!isValidCsvStatus(trimmedStatus)) {
     throw new Error(
-      `CSV line ${lineNumber}: invalid status "${trimmedStatus}", expected one of: ${VALID_STATUSES.join(', ')}`,
+      `CSV line ${lineNumber}: invalid status "${trimmedStatus}", expected one of: ${VALID_STATUSES.join(', ')} or disabled:<reason>`,
     );
   }
 
+  const validatedStatus: CsvStatus = trimmedStatus;
   return {
     slug: slug.trim(),
     title: title.trim(),
     docUrl: docUrl.trim(),
-    status: trimmedStatus,
+    status: validatedStatus,
   };
 }
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseCsvRow, parseCsvContent, formatCsvRow } from './csv';
+import { parseCsvRow, parseCsvContent, formatCsvRow, isActiveRow } from './csv';
 
 describe('parseCsvRow', () => {
   it('parses a valid CSV row', () => {
@@ -46,6 +46,34 @@ describe('parseCsvRow', () => {
 
   it('throws on invalid status', () => {
     expect(() => parseCsvRow('slug,title,url,draft', 2)).toThrow('invalid status "draft"');
+  });
+
+  it('accepts disabled:reason status', () => {
+    const row = parseCsvRow('2025-01,January 2025,https://example.com,disabled:duplicate', 2);
+    expect(row.status).toBe('disabled:duplicate');
+  });
+
+  it('accepts disabled with any reason string', () => {
+    const row = parseCsvRow('a,b,c,disabled:old-draft', 1);
+    expect(row.status).toBe('disabled:old-draft');
+  });
+
+  it('rejects bare "disabled" without a reason', () => {
+    expect(() => parseCsvRow('a,b,c,disabled', 1)).toThrow('invalid status');
+  });
+});
+
+describe('isActiveRow', () => {
+  it('returns true for published status', () => {
+    expect(isActiveRow({ slug: 'a', title: 'b', docUrl: 'c', status: 'published' })).toBe(true);
+  });
+
+  it('returns true for frozen status', () => {
+    expect(isActiveRow({ slug: 'a', title: 'b', docUrl: 'c', status: 'frozen' })).toBe(true);
+  });
+
+  it('returns false for disabled status', () => {
+    expect(isActiveRow({ slug: 'a', title: 'b', docUrl: 'c', status: 'disabled:duplicate' })).toBe(false);
   });
 });
 
