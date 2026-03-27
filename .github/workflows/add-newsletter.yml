@@ -82,34 +82,10 @@ jobs:
         run: |
           echo "${{ steps.calc.outputs.slug }},${{ steps.calc.outputs.title }},${{ inputs.doc_url }},pre-release" >> issues.csv
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - run: npm ci
-
-      - name: Cache newsletter data
-        run: npm run cache
-
-      - name: Freeze newsletter data
-        run: npm run freeze
-
-      - name: Build site
-        run: npm run build
-        env:
-          VITE_PRERELEASE_PASSWORD_HASH: ${{ secrets.PRERELEASE_PASSWORD_HASH }}
-
-      - name: Commit and push changes
+      - name: Commit and push
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add issues.csv data/
+          git add issues.csv
           git commit -m "Add newsletter: ${{ steps.calc.outputs.title }} (${{ steps.calc.outputs.slug }})"
           git push
-
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: ./dist
