@@ -33,6 +33,39 @@ npm run test:watch     # run tests in watch mode
 npm run test:coverage  # run tests with coverage enforcement
 ```
 
+## Adding a new newsletter
+
+No terminal or code knowledge needed. Everything is done from GitHub in your browser.
+
+### Step 1: Get the published Google Doc URL
+
+1. Open the newsletter Google Doc
+2. Go to **File > Share > Publish to web**
+3. Click **Publish** (if not already published)
+4. Copy the URL — it will look like `https://docs.google.com/document/d/e/2PACX-.../pub`
+
+### Step 2: Add it as a pre-release
+
+1. Go to the [**Add Newsletter** action](https://github.com/joseph-uk/dhpc-newsletter/actions/workflows/add-newsletter.yml)
+2. Click the **"Run workflow"** button (top right)
+3. Paste the Google Doc URL into the **first field**
+4. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
+5. Click **"Run workflow"**
+
+The newsletter will be added as a **pre-release** (password-protected) so you can review it before making it public.
+
+> Only use the year/month override fields if you need to correct the auto-calculated date (e.g. adding a past issue). Normally leave them blank.
+
+### Step 3: Publish it
+
+Once you're happy with the pre-release:
+
+1. Go to the [**Publish Newsletter** action](https://github.com/joseph-uk/dhpc-newsletter/actions/workflows/publish-newsletter.yml)
+2. Click **"Run workflow"**
+3. Click **"Run workflow"** again to confirm
+
+That's it — the latest pre-release is promoted to published and the site is redeployed.
+
 ## Deployment
 
 GitHub Actions auto-deploys to GitHub Pages on every push to `main`. The pipeline:

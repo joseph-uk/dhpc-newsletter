@@ -1,0 +1,62 @@
+name: Publish Newsletter
+
+on:
+  workflow_dispatch:
+
+jobs:
+  publish-newsletter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Find latest pre-release
+        id: find
+        run: |
+          MATCH=$(grep ',pre-release$' issues.csv | tail -1)
+          if [ -z "$MATCH" ]; then
+            echo "::error::No pre-release newsletters found in issues.csv"
+            exit 1
+          fi
+          SLUG=$(echo "$MATCH" | cut -d',' -f1)
+          TITLE=$(echo "$MATCH" | cut -d',' -f2)
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "title=$TITLE" >> "$GITHUB_OUTPUT"
+          echo "Publishing: $TITLE ($SLUG)"
+
+      - name: Update status to published
+        run: |
+          sed -i "s/^${{ steps.find.outputs.slug }},\(.*\),pre-release$/${{ steps.find.outputs.slug }},\1,published/" issues.csv
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Cache newsletter data
+        run: npm run cache
+
+      - name: Freeze newsletter data
+        run: npm run freeze
+
+      - name: Build site
+        run: npm run build
+        env:
+          VITE_PRERELEASE_PASSWORD_HASH: ${{ secrets.PRERELEASE_PASSWORD_HASH }}
+
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add issues.csv data/ public/issues/ public/registry.json
+          git commit -m "Publish newsletter: ${{ steps.find.outputs.title }} (${{ steps.find.outputs.slug }})"
+          git push
+
+      - name: Deploy to GitHub Pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
