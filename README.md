@@ -1,37 +1,8 @@
 # Skywords — DHPC Newsletter Viewer
 
-A React/TypeScript web app that reads published Google Docs and renders them as navigable newsletters for the [Dales Hang Gliding and Paragliding Club](https://www.dhpc.org.uk/).
+The online newsletter for the [Dales Hang Gliding and Paragliding Club](https://www.dhpc.org.uk/).
 
-**Live at [dhpc.org.uk/skywords](https://www.dhpc.org.uk/skywords/)** — the official club page iframes the [GitHub Pages deployment](https://joseph-uk.github.io/dhpc-newsletter/).
-
-## What it does
-
-- Fetches published Google Docs (live, no cache) and renders them as newsletters
-- Parses document structure into sections (H1) and subsections (H2)
-- Provides navigable reading: index, section view, back/home/next navigation
-- Sanitises all HTML with DOMPurify before rendering
-- Rewrites Google redirect links to their real destinations
-- Caches issue metadata for fast loading and offline resilience
-
-## Tech stack
-
-- React 19 + TypeScript 5.9 (strictest config)
-- Vite 7
-- CSS Modules
-- DOMPurify
-- Vitest (95% coverage minimum)
-
-## Development
-
-```bash
-npm install
-npm run dev            # local dev server
-npm run build          # production build to dist/
-npm run lint           # ESLint (zero warnings/errors required)
-npm run test           # run tests
-npm run test:watch     # run tests in watch mode
-npm run test:coverage  # run tests with coverage enforcement
-```
+**Live at [dhpc.org.uk/skywords](https://www.dhpc.org.uk/skywords/)**
 
 ## Adding a new newsletter
 
@@ -69,7 +40,37 @@ Once you're happy with the pre-release:
 
 That's it — the latest pre-release is promoted to published and the site is redeployed.
 
-## Deployment
+## How it works
+
+Each newsletter is written as a Google Doc. When you add a new edition using the steps above, the system automatically fetches the document, extracts the content and images, and publishes it to the website. Newsletters start as password-protected pre-releases so you can check everything looks right before making them public.
+
+The website displays each newsletter with navigable sections — readers can browse by section heading rather than scrolling through the entire document. All past editions are listed on the home page.
+
+---
+
+## Technical details
+
+### Tech stack
+
+- React 19 + TypeScript 5.9 (strictest config)
+- Vite 7
+- CSS Modules
+- DOMPurify for HTML sanitisation
+- Vitest (95% coverage minimum)
+
+### Development
+
+```bash
+npm install
+npm run dev            # local dev server
+npm run build          # production build to dist/
+npm run lint           # ESLint (zero warnings/errors required)
+npm run test           # run tests
+npm run test:watch     # run tests in watch mode
+npm run test:coverage  # run tests with coverage enforcement
+```
+
+### Deployment
 
 GitHub Actions auto-deploys to GitHub Pages on every push to `main`. The pipeline:
 
@@ -79,9 +80,9 @@ GitHub Actions auto-deploys to GitHub Pages on every push to `main`. The pipelin
 4. Builds for production (`npm run build`)
 5. Deploys `dist/` to GitHub Pages
 
-The [official Skywords page](https://www.dhpc.org.uk/skywords/) on the DHPC website embeds this GitHub Pages deployment via iframe.
+The [official Skywords page](https://www.dhpc.org.uk/skywords/) on the DHPC website embeds this [GitHub Pages deployment](https://joseph-uk.github.io/dhpc-newsletter/) via iframe.
 
-## URL format
+### URL format
 
 Two hash-based routing formats are supported:
 
@@ -93,11 +94,9 @@ https://www.dhpc.org.uk/skywords/#url=https://docs.google.com/document/d/e/2PACX
 https://www.dhpc.org.uk/skywords/#id=2PACX-1vA...
 ```
 
-To test locally, paste a published Google Doc URL into the input field on the home page, or navigate directly using the hash formats above.
-
 > A Google Doc must be published to the web (File > Share > Publish to web) before it can be loaded.
 
-## Project structure
+### Project structure
 
 ```
 src/
@@ -106,6 +105,6 @@ src/
 └── types/         # TypeScript type definitions
 ```
 
-## Repository
+### Repository
 
 [github.com/joseph-uk/dhpc-newsletter](https://github.com/joseph-uk/dhpc-newsletter)
