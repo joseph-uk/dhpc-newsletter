@@ -93,5 +93,7 @@ jobs:
 
   deploy:
     needs: add-newsletter
+    permissions:
+      contents: write
     uses: ./.github/workflows/deploy.yml
     secrets: inherit

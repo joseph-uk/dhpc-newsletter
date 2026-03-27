@@ -39,5 +39,7 @@ jobs:
 
   deploy:
     needs: publish-newsletter
+    permissions:
+      contents: write
     uses: ./.github/workflows/deploy.yml
     secrets: inherit
