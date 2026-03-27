@@ -48,9 +48,12 @@ No terminal or code knowledge needed. Everything is done from GitHub in your bro
 
 1. Go to the [**Add Newsletter** action](https://github.com/joseph-uk/dhpc-newsletter/actions/workflows/add-newsletter.yml)
 2. Click the **"Run workflow"** button (top right)
-3. Paste the Google Doc URL into the **first field**
-4. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
-5. Click **"Run workflow"**
+<img width="2333" height="1250" alt="image" src="https://github.com/user-attachments/assets/fa0eda8d-2e60-4ace-be2b-64887bc40ebc" />
+
+  
+4. Paste the Google Doc URL into the **first field**
+5. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
+6. Click **"Run workflow"**
 
 The newsletter will be added as a **pre-release** (password-protected) so you can review it before making it public.
 
