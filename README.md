@@ -40,6 +40,19 @@ Once you're happy with the pre-release:
 
 That's it — the latest pre-release is promoted to published and the site is redeployed.
 
+### Waiting for deployment
+
+After running either action, the site won't update immediately — a separate **Deploy** job runs automatically to build and publish the site. This takes about 1 minute.
+
+To check progress:
+
+1. Go to the [**Actions** tab](https://github.com/joseph-uk/dhpc-newsletter/actions)
+2. You'll see your workflow run (e.g. "Add Newsletter" or "Publish Newsletter") at the top
+3. Click on it — you'll see two jobs: the action itself and **deploy**
+4. When both show green ticks, the site is live
+
+If anything goes red, click on the failed step to see what went wrong.
+
 ## How it works
 
 Each newsletter is written as a Google Doc. When you add a new edition using the steps above, the system automatically fetches the document, extracts the content and images, and publishes it to the website. Newsletters start as password-protected pre-releases so you can check everything looks right before making them public.
