@@ -10,6 +10,8 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: main
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -25,6 +27,7 @@ jobs:
             echo "No new cached data to commit"
           else
             git commit -m "chore: update cached issue data [skip ci]"
+            git pull --rebase
             git push
           fi
       - run: npm run freeze
