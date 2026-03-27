@@ -22,6 +22,7 @@ jobs:
     permissions:
       contents: write
     steps:
+
       - uses: actions/checkout@v4
 
       - name: Calculate month and year
@@ -87,5 +88,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add issues.csv
-          git commit -m "Add newsletter: ${{ steps.calc.outputs.title }} (${{ steps.calc.outputs.slug }})"
+          git commit -m "Add newsletter: ${{ steps.calc.outputs.title }} (${{ steps.calc.outputs.slug }}) [skip ci]"
           git push
+
+  deploy:
+    needs: add-newsletter
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
