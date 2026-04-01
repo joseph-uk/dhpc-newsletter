@@ -195,6 +195,13 @@
       "docUrl": "https://docs.google.com/document/d/e/2PACX-1vSIRSUdxMSX8HqwxoySH9lEY9cAocbIa_OldlrCR8OAf2HSDu6hiwXOcIFvkpjDJxvBjKS_46ptvaIC/pub",
       "status": "published",
       "contentHash": "e1314bb440c623ed55fbe62475942c42a4b74a05bac91ab3a79604c7244dc05c"
+    },
+    {
+      "slug": "2026-05",
+      "title": "May 2026",
+      "docUrl": "https://docs.google.com/document/d/e/2PACX-1vT7B5h5pEcYC6oNOf5t7sBXGv-m3VsvMnTetTpnqjUItkWMvaVQrPR1fTyXe986Vw-WUDNqoR44L6PU/pub",
+      "status": "pre-release",
+      "contentHash": "7a02c090f76a077473dc5fc18d72b35d2878c78ce75927383f57efc5222b184d"
     }
   ]
 }
