@@ -1,67 +1,52 @@
 #!/bin/bash
 #
-# upgrade.sh - Upgrade hooks daemon to new version
+# upgrade.sh — thin shim for /hooks-daemon upgrade (Plan 00109 Phase 2).
+#
+# This script carries ZERO upgrade logic. It detects the client's project
+# root, fetches the canonical ``scripts/upgrade.sh`` from the daemon repo
+# on GitHub, and execs it. Every fix to the upgrade flow lives in the
+# in-repo script — clients pick it up on the next invocation without
+# needing to re-install the skill.
+#
+# Environment overrides:
+#   HOOKS_DAEMON_UPGRADE_REF        git ref to fetch (default: main)
+#   HOOKS_DAEMON_UPGRADE_BASE_URL   base URL override (default: GitHub raw)
 #
 # Usage:
-#   ./upgrade.sh [VERSION]
-#
-# Arguments:
-#   VERSION (optional): Target version (e.g., 2.14.0 or v2.14.0)
-#                       If omitted, upgrades to latest version
+#   upgrade.sh [VERSION]   — passes VERSION through to the canonical script.
 #
 
 set -euo pipefail
 
-# Detect project root
+if [ "${1:-}" = "--help" ] || [ "${1:-}" = "-h" ]; then
+    printf '%s\n' "Usage: upgrade.sh [VERSION]" \
+        "  VERSION  Target git tag (default: latest). See HOOKS_DAEMON_UPGRADE_REF" \
+        "           and HOOKS_DAEMON_UPGRADE_BASE_URL for fetch overrides."
+    exit 0
+fi
+
 PROJECT_ROOT="$(pwd)"
 while [ "$PROJECT_ROOT" != "/" ]; do
-    if [ -f "$PROJECT_ROOT/.claude/hooks-daemon.yaml" ]; then
-        break
-    fi
+    if [ -f "$PROJECT_ROOT/.claude/hooks-daemon.yaml" ]; then break; fi
     PROJECT_ROOT="$(dirname "$PROJECT_ROOT")"
 done
-
 if [ ! -f "$PROJECT_ROOT/.claude/hooks-daemon.yaml" ]; then
-    echo "Error: Not in a hooks daemon project (no .claude/hooks-daemon.yaml found)"
+    echo "Error: not in a hooks daemon project (no .claude/hooks-daemon.yaml found)" >&2
     exit 1
 fi
 
-DAEMON_DIR="$PROJECT_ROOT/.claude/hooks-daemon"
-TARGET_VERSION="${1:-}"
+REF="${HOOKS_DAEMON_UPGRADE_REF:-main}"
+BASE_URL="${HOOKS_DAEMON_UPGRADE_BASE_URL:-https://raw.githubusercontent.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon}"
+URL="$BASE_URL/$REF/scripts/upgrade.sh"
 
-echo "Claude Code Hooks Daemon - Upgrade"
-echo ""
-echo "Project:        $PROJECT_ROOT"
-echo "Daemon:         $DAEMON_DIR"
-echo "Target version: ${TARGET_VERSION:-latest (auto-detect)}"
-echo ""
-
-# Check if daemon directory exists
-if [ ! -d "$DAEMON_DIR" ]; then
-    echo "Error: Daemon directory not found: $DAEMON_DIR"
-    echo ""
-    echo "Run installation first:"
-    echo "  curl -fsSL https://raw.githubusercontent.com/your-org/hooks-daemon/main/scripts/install.sh | bash"
+TMP="$(mktemp)"
+if ! curl -fsSL --max-time 30 -o "$TMP" "$URL"; then
+    rm -f "$TMP"
+    # Plan 00114 F4: make the offline/network failure actionable instead of a
+    # dead end. The installed daemon already ships a working Layer 1 upgrade.sh.
+    # A single printf keeps the shim under its thin-shim line budget.
+    printf 'Error: failed to fetch upgrade.sh from %s\nRecovery: run the installed daemon Layer 1 directly:\n  bash "%s/.claude/hooks-daemon/scripts/upgrade.sh" --project-root "%s"\nor pin a reachable ref: HOOKS_DAEMON_UPGRADE_REF=v3.16.0 bash "%s"\n' "$URL" "$PROJECT_ROOT" "$PROJECT_ROOT" "$0" >&2
     exit 1
 fi
-
-# Check if upgrade script exists
-UPGRADE_SCRIPT="$DAEMON_DIR/scripts/upgrade.sh"
-if [ ! -f "$UPGRADE_SCRIPT" ]; then
-    echo "Error: Upgrade script not found: $UPGRADE_SCRIPT"
-    echo ""
-    echo "Your daemon installation may be incomplete or from an older version."
-    echo "Try reinstalling from scratch."
-    exit 1
-fi
-
-# Execute the daemon's upgrade script
-echo "Executing upgrade..."
-echo ""
-
-cd "$PROJECT_ROOT"
-if [ -n "$TARGET_VERSION" ]; then
-    bash "$UPGRADE_SCRIPT" --project-root "$PROJECT_ROOT" "$TARGET_VERSION"
-else
-    bash "$UPGRADE_SCRIPT" --project-root "$PROJECT_ROOT"
-fi
+chmod +x "$TMP"
+exec bash "$TMP" --project-root "$PROJECT_ROOT" "$@"

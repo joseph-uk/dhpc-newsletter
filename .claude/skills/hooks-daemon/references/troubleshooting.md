@@ -5,6 +5,7 @@ Common issues and solutions for Claude Code Hooks Daemon.
 ## Daemon Won't Start
 
 ### Symptom
+
 ```
 Error: Failed to start daemon
 ```
@@ -12,6 +13,7 @@ Error: Failed to start daemon
 ### Causes & Solutions
 
 **1. Socket file already exists**
+
 ```bash
 # Remove stale socket
 rm .claude/hooks-daemon/untracked/daemon-*.sock
@@ -19,6 +21,7 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli start
 ```
 
 **2. Permission denied**
+
 ```bash
 # Check permissions
 ls -la .claude/hooks-daemon/untracked/
@@ -26,6 +29,7 @@ ls -la .claude/hooks-daemon/untracked/
 ```
 
 **3. Python environment issues**
+
 ```bash
 # Verify Python version (3.11+ required)
 $PYTHON --version
@@ -38,6 +42,7 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli repair
 ```
 
 **4. Port already in use**
+
 ```bash
 # Check for existing daemon processes
 ps aux | grep hooks-daemon
@@ -49,6 +54,7 @@ pkill -f hooks-daemon
 ## DEGRADED MODE
 
 ### Symptom
+
 ```
 ⚠️  Daemon running in DEGRADED MODE (2 handlers failed to load)
 ```
@@ -58,12 +64,14 @@ pkill -f hooks-daemon
 **1. Abstract Method Missing (v2.13.0+ breaking change)**
 
 **Error:**
+
 ```
 Can't instantiate abstract class MyHandler with abstract method get_acceptance_tests
 ```
 
 **Solution:**
 Add the required method to your handler:
+
 ```python
 def get_acceptance_tests(self) -> list[AcceptanceTest]:
     """Return acceptance tests for this handler."""
@@ -75,11 +83,13 @@ See: `CLAUDE/HANDLER_DEVELOPMENT.md` for details on v2.13.0 changes.
 **2. Import Error**
 
 **Error:**
+
 ```
 ModuleNotFoundError: No module named 'my_dependency'
 ```
 
 **Solution:**
+
 ```bash
 # Install missing dependency in daemon venv
 .claude/hooks-daemon/untracked/venv/bin/pip install my_dependency
@@ -91,12 +101,14 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli restart
 **3. Handler Configuration Error**
 
 **Error:**
+
 ```
 Invalid handler configuration: priority must be int, not str
 ```
 
 **Solution:**
 Fix `.claude/hooks-daemon.yaml`:
+
 ```yaml
 # WRONG
 handlers:
@@ -116,14 +128,21 @@ handlers:
 ### Upgrade Script Not Found
 
 **Error:**
+
 ```
 curl: (404) Not Found
 ```
 
 **Solution:**
-Use the correct upgrade URL:
+Use the skill command or download-then-run:
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/your-org/hooks-daemon/main/scripts/upgrade.sh | bash
+# Preferred:
+/hooks-daemon upgrade
+
+# Manual:
+curl -sSL https://raw.githubusercontent.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon/main/scripts/upgrade.sh -o /tmp/hooks-daemon-upgrade.sh
+bash /tmp/hooks-daemon-upgrade.sh
 ```
 
 ### Upgrade Hangs
@@ -131,6 +150,7 @@ curl -fsSL https://raw.githubusercontent.com/your-org/hooks-daemon/main/scripts/
 **Symptom:** Upgrade command never completes
 
 **Solution:**
+
 ```bash
 # Check daemon logs
 $PYTHON -m claude_code_hooks_daemon.daemon.cli logs
@@ -146,6 +166,7 @@ pkill -f hooks-daemon
 
 **Solution:**
 The upgrade script auto-rollsback, but if needed manually:
+
 ```bash
 # Restore backed-up config
 cp .claude/hooks-daemon.yaml.backup .claude/hooks-daemon.yaml
@@ -161,21 +182,25 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli restart
 ## Handler Not Triggering
 
 ### Symptom
+
 Handler exists but never fires
 
 ### Debug Steps
 
 **1. Verify handler loaded:**
+
 ```bash
 $PYTHON -m claude_code_hooks_daemon.daemon.cli handlers | grep my_handler
 ```
 
 If not listed, check:
+
 - Handler registered in `.claude/hooks-daemon.yaml`
 - Daemon restarted after adding handler
 - No syntax errors in handler file
 
 **2. Verify handler matches:**
+
 ```bash
 # Enable debug logging
 export HOOKS_DAEMON_LOG_LEVEL=DEBUG
@@ -186,6 +211,7 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli logs | grep my_handler
 ```
 
 **3. Debug hook event flow:**
+
 ```bash
 # Capture real events
 ./scripts/debug_hooks.sh start "Testing my handler"
@@ -203,11 +229,13 @@ See: `CLAUDE/DEBUGGING_HOOKS.md` for complete debugging workflow.
 ### Invalid YAML Syntax
 
 **Error:**
+
 ```
 yaml.scanner.ScannerError: mapping values are not allowed here
 ```
 
 **Solution:**
+
 ```bash
 # Validate YAML syntax
 $PYTHON -c "import yaml; yaml.safe_load(open('.claude/hooks-daemon.yaml'))"
@@ -219,6 +247,7 @@ diff .claude/hooks-daemon.yaml .claude/hooks-daemon.yaml.example
 ### Schema Validation Failed
 
 **Error:**
+
 ```
 Configuration validation failed:
   handlers.pre_tool_use.my_handler.priority: field required
@@ -226,6 +255,7 @@ Configuration validation failed:
 
 **Solution:**
 Every handler config must have required fields:
+
 ```yaml
 handlers:
   pre_tool_use:
@@ -241,11 +271,13 @@ handlers:
 **Symptom:** Noticeable delay before commands execute
 
 **Causes:**
+
 1. Too many handlers enabled
 2. Handler with expensive operations in matches()
 3. Handler not setting terminal=True when appropriate
 
 **Solutions:**
+
 ```bash
 # Disable unused handlers
 # Edit .claude/hooks-daemon.yaml, set enabled: false
@@ -263,6 +295,7 @@ export HOOKS_DAEMON_LOG_LEVEL=DEBUG
 **Symptom:** Daemon consuming excessive RAM
 
 **Solutions:**
+
 ```bash
 # Check daemon stats
 $PYTHON -m claude_code_hooks_daemon.daemon.cli status
@@ -278,11 +311,13 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli restart
 ### Socket File Missing
 
 **Error:**
+
 ```
 Error: Socket file not found: .claude/hooks-daemon/untracked/daemon-*.sock
 ```
 
 **Solution:**
+
 ```bash
 # Check daemon is running
 $PYTHON -m claude_code_hooks_daemon.daemon.cli status
@@ -294,11 +329,13 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli start
 ### Permission Denied on Socket
 
 **Error:**
+
 ```
 PermissionError: [Errno 13] Permission denied: '/path/to/daemon.sock'
 ```
 
 **Solution:**
+
 ```bash
 # Fix socket permissions
 chmod 600 .claude/hooks-daemon/untracked/daemon-*.sock
@@ -325,13 +362,14 @@ cat .claude/hooks-daemon.yaml >> diagnostic-report.txt
 ### Report Issues
 
 When reporting issues, include:
+
 1. Daemon version: `$PYTHON -m claude_code_hooks_daemon.daemon.cli --version`
 2. Python version: `$PYTHON --version`
 3. OS: `uname -a`
 4. Diagnostic report (above)
 5. Steps to reproduce
 
-**Report at:** https://github.com/your-org/claude-code-hooks-daemon/issues
+**Report at:** https://github.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon/issues
 
 ## Quick Reference
 

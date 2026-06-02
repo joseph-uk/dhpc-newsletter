@@ -13,3 +13,6 @@ scripts/.credentials/
 
 # Dependencies
 node_modules/
+
+# ClaudeMdInjector backup (session artifact, never commit)
+.CLAUDE.md.pre-inject

@@ -1,4 +1,5 @@
 {
+  "plansDirectory": "./CLAUDE/Plan",
   "statusLine": {
     "type": "command",
     "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/status-line"
@@ -9,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-tool-use",
             "timeout": 60
           }
         ]
@@ -20,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/post-tool-use",
             "timeout": 60
           }
         ]
@@ -31,7 +32,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-start"
           }
         ]
       }
@@ -41,7 +42,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notification"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/notification"
           }
         ]
       }
@@ -51,7 +52,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-request"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/permission-request"
           }
         ]
       }
@@ -61,7 +62,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/pre-compact"
           }
         ]
       }
@@ -71,7 +72,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/session-end"
           }
         ]
       }
@@ -81,7 +82,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/stop"
           }
         ]
       }
@@ -91,7 +92,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-stop"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/subagent-stop"
           }
         ]
       }
@@ -101,7 +102,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "\"$CLAUDE_PROJECT_DIR\"/.claude/hooks/user-prompt-submit"
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/user-prompt-submit"
           }
         ]
       }
