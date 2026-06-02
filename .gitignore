@@ -1,6 +1,10 @@
 # Claude Code Hooks Daemon
 .claude/hooks-daemon/
 
+# Claude Code session artifacts
+.claude/worktrees/
+.claude/scheduled_tasks.lock
+
 # Build output
 dist/
 
