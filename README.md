@@ -18,13 +18,15 @@ No terminal or code knowledge needed. Everything is done from GitHub in your bro
 ### Step 2: Add it as a pre-release
 
 1. Go to the [**Add Newsletter** action](https://github.com/joseph-uk/dhpc-newsletter/actions/workflows/add-newsletter.yml)
-2. Click the **"Run workflow"** button (top right)
-<img width="2333" height="1250" alt="image" src="https://github.com/user-attachments/assets/fa0eda8d-2e60-4ace-be2b-64887bc40ebc" />
 
-  
-4. Paste the Google Doc URL into the **first field**
-5. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
-6. Click **"Run workflow"**
+2. Click the **"Run workflow"** button (top right)
+   <img width="2333" height="1250" alt="image" src="https://github.com/user-attachments/assets/fa0eda8d-2e60-4ace-be2b-64887bc40ebc" />
+
+3. Paste the Google Doc URL into the **first field**
+
+4. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
+
+5. Click **"Run workflow"**
 
 The newsletter will be added as a **pre-release** (password-protected) so you can review it before making it public.
 
@@ -39,6 +41,19 @@ Once you're happy with the pre-release:
 3. Click **"Run workflow"** again to confirm
 
 That's it — the latest pre-release is promoted to published and the site is redeployed.
+
+### Editing an already-published newsletter
+
+If you edit a Google Doc **after** it has been published, the website's live view picks up your changes automatically, but the saved copy stored in the repository stays on the old version until you refresh it. To update the saved copy and redeploy:
+
+1. Go to the [**Republish Newsletter** action](https://github.com/joseph-uk/dhpc-newsletter/actions/workflows/republish-newsletter.yml)
+2. Click **"Run workflow"**
+3. Optionally type the slug to refresh (e.g. `2026-06`). **Leave it empty** to refresh the most recently published newsletter
+4. Click **"Run workflow"** again to confirm
+
+This re-fetches the latest version of the Google Doc (text and images), removes any images the edited doc no longer uses, and redeploys the site.
+
+> The **Publish Newsletter** action cannot do this — it only promotes a new pre-release to published. Use **Republish** whenever the content of an already-public newsletter changes.
 
 ### Waiting for deployment
 

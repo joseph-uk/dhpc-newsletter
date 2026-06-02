@@ -5,7 +5,7 @@ import { readFileSync } from 'node:fs';
 import { parseDocument } from '../src/services/docParserCore';
 import { parseCsvContent, isActiveRow } from './lib/csv';
 import type { CsvRow } from './lib/csv';
-import { readCacheMeta, writeCacheMeta, writeCachedDoc, writeRawHtml, isCacheStale } from './lib/cache';
+import { readCacheMeta, writeCacheMeta, writeCachedDoc, writeRawHtml, isCacheStale, pruneImages } from './lib/cache';
 import type { CacheMeta } from './lib/cache';
 import { extractImageUrls, rewriteDocDataImages } from './lib/contentRewriter';
 import { downloadAllImages } from './lib/imageDownloader';
@@ -107,6 +107,12 @@ async function cacheIssue(row: CsvRow, docsRoot: string, sanitize: (html: string
   if (imageUrls.length > 0) {
     process.stderr.write(`    Downloading ${imageUrls.length} images\n`);
     imageUrlMap = new Map(await downloadAllImages(imageUrls, imagesDir));
+  }
+
+  const keepFilenames = [...imageUrlMap.values()].map((path) => path.replace(/^images\//, ''));
+  const prunedImages = pruneImages(imagesDir, keepFilenames);
+  if (prunedImages.length > 0) {
+    process.stderr.write(`    Pruned ${prunedImages.length} orphaned images\n`);
   }
 
   const rewrittenDoc = rewriteDocDataImages(docData, imageUrlMap);

@@ -1,0 +1,90 @@
+name: Republish Newsletter
+
+# Force-refreshes an ALREADY-PUBLISHED newsletter from its Google Doc and redeploys.
+# Use this when a published doc was edited and the tracked snapshot in data/ is stale.
+# (The "Publish Newsletter" workflow only flips pre-release -> published for NEW issues;
+#  it cannot refresh content that is already published.)
+
+on:
+  workflow_dispatch:
+    inputs:
+      slug:
+        description: 'Newsletter slug to force-refresh (e.g. 2026-06). Leave empty to refresh the most recently published newsletter.'
+        required: false
+        type: string
+
+# Serialise runs so concurrent republishes cannot race on the data/ commit + push.
+concurrency:
+  group: republish-newsletter
+  cancel-in-progress: false
+
+jobs:
+  republish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve and validate slug
+        id: resolve
+        # Pass the untrusted input via env (data), never via ${{ }} template
+        # interpolation into the script (which would allow shell injection).
+        env:
+          SLUG_INPUT: ${{ inputs.slug }}
+        run: |
+          SLUG="$SLUG_INPUT"
+          if [ -z "$SLUG" ]; then
+            SLUG=$(grep ',published$' issues.csv | tail -1 | cut -d',' -f1)
+            if [ -z "$SLUG" ]; then
+              echo "::error::No published newsletters found in issues.csv"
+              exit 1
+            fi
+            echo "No slug supplied — defaulting to most recent published: $SLUG"
+          fi
+          # Validate FORMAT before any further use (mirrors add-newsletter.yml).
+          if ! echo "$SLUG" | grep -qE '^[0-9]{4}-(0[1-9]|1[0-2])$'; then
+            echo "::error::Invalid slug '$SLUG' — must be YYYY-MM"
+            exit 1
+          fi
+          # Validate the slug is an active (non-disabled) newsletter.
+          if ! grep -qE "^${SLUG},.*,(published|frozen|pre-release)$" issues.csv; then
+            echo "::error::Slug '$SLUG' is not an active newsletter in issues.csv"
+            exit 1
+          fi
+          echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
+          echo "Republishing: $SLUG"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      - name: Force re-cache from Google Docs
+        env:
+          SLUG: ${{ steps.resolve.outputs.slug }}
+        run: npm run cache -- --force --slug "$SLUG"
+
+      - name: Commit refreshed snapshot
+        env:
+          SLUG: ${{ steps.resolve.outputs.slug }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/
+          if git diff --cached --quiet; then
+            echo "No content changes for $SLUG — redeploying current snapshot"
+          else
+            git commit -m "Republish newsletter: $SLUG (force-refresh from Google Docs) [skip ci]"
+            git pull --rebase
+            git push
+          fi
+
+  deploy:
+    needs: republish
+    permissions:
+      contents: write
+    uses: ./.github/workflows/deploy.yml
+    secrets: inherit
