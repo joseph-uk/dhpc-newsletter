@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'node:fs';
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import type { DocData } from '../../src/types/DocData';
 import type { IssueStatus } from '../../src/types/Registry';
@@ -116,4 +116,17 @@ export function writeCachedDoc(docsRoot: string, slug: string, doc: DocData): vo
 export function writeRawHtml(docsRoot: string, slug: string, html: string): void {
   const dir = ensureCacheDir(docsRoot, slug);
   writeFileSync(join(dir, 'raw.html'), html, 'utf-8');
+}
+
+export function pruneImages(imagesDir: string, keepFilenames: readonly string[]): readonly string[] {
+  if (!existsSync(imagesDir)) return [];
+
+  const keep = new Set(keepFilenames);
+  const removed: string[] = [];
+  for (const file of readdirSync(imagesDir)) {
+    if (keep.has(file)) continue;
+    rmSync(join(imagesDir, file));
+    removed.push(file);
+  }
+  return removed;
 }
