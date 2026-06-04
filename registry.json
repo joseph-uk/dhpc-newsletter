@@ -209,6 +209,13 @@
       "docUrl": "https://docs.google.com/document/d/e/2PACX-1vQbVEd8VjuLOr0MWBpq28P-_qruQtljYNWvyJdYumiI1R1x9ZtREanmji6oY58kmdCIRJh5tr2phvCE/pub",
       "status": "published",
       "contentHash": "ddea1540db3a3f9628155978889a25059e541505e2c028551aa57b845cf99a82"
+    },
+    {
+      "slug": "2026-07",
+      "title": "July 2026",
+      "docUrl": "https://docs.google.com/document/d/e/2PACX-1vTKHDYZoqsWWH_ZAfGJD3p_pCiuFxbGM5LjY3KVdsf1tV7FNU8V8PWOWDN2Llr7Re7HvffM2v451Tw8/pub",
+      "status": "pre-release",
+      "contentHash": "001f82fccf6ff1ab2a640f67a86a18cdc228e63d2036fa48b677db318d040c97"
     }
   ]
 }
