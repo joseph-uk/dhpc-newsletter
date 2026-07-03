@@ -82,7 +82,7 @@
       "title": "September 2024",
       "docUrl": "https://docs.google.com/document/d/1VzoWT0Rblh94H0MaS3LrGVLelheY0rKeTqNtfNT5cTQ/pub",
       "status": "published",
-      "contentHash": "47826d36c19f2c56e2d2435bd0a6c99f6c534e84d2943d5b211b9cbf00623e1b"
+      "contentHash": "0777d9a5da69247c34562575e65346ec2e52f3c55bef513b591f05bf85c52be7"
     },
     {
       "slug": "2024-10",
@@ -216,6 +216,13 @@
       "docUrl": "https://docs.google.com/document/d/e/2PACX-1vTKHDYZoqsWWH_ZAfGJD3p_pCiuFxbGM5LjY3KVdsf1tV7FNU8V8PWOWDN2Llr7Re7HvffM2v451Tw8/pub",
       "status": "published",
       "contentHash": "e45f6e6c42bc3f33c9640ea4c4174241e54e0ececa627ed2781982249340a1c6"
+    },
+    {
+      "slug": "2026-08",
+      "title": "August 2026",
+      "docUrl": "https://docs.google.com/document/d/e/2PACX-1vQiySYOw15ccNZJECRQiWqd8jXnzwCRJfABBFN0tZUJBZ6k_BMHi9_dqcIxAkO5uGjICSzphLf6NWJH/pub",
+      "status": "pre-release",
+      "contentHash": "94b5720caac323b63f5d898442ad278331c887c639d79a6d625c44a5514e001d"
     }
   ]
 }
