@@ -1,0 +1,3 @@
+# Scratch / working directory — ignore everything except this file itself.
+*
+!.gitignore
