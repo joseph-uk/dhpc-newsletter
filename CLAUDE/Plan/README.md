@@ -10,7 +10,7 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 
 ## Active Plans
 
-- [00006-social-preview-og-tags](00006-social-preview-og-tags/PLAN.md) — Build-time prerendered Open Graph / Twitter Card previews with auto-selected landscape images
+_No active plans._
 
 ## Completed Plans
 
@@ -18,9 +18,10 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 - [00002-issue-registry](Completed/00002-issue-registry/PLAN.md) — CSV-driven issue registry mapping newsletter editions to Google Docs
 - [00003-url-routing-and-doc-caching](Completed/00003-url-routing-and-doc-caching/PLAN.md) — Path-based URL routing and build-time document caching pipeline
 - [00005-gdrive-newsletter-discovery](Completed/00005-gdrive-newsletter-discovery/PLAN.md) — Google Drive newsletter discovery CLI (OAuth2)
+- [00006-social-preview-og-tags](Completed/00006-social-preview-og-tags/PLAN.md) — Build-time prerendered Open Graph / Twitter Card previews with auto-selected landscape images
 
 ## Statistics
 
 - **Total**: 5
-- **Active**: 1
-- **Completed**: 4
+- **Active**: 0
+- **Completed**: 5
