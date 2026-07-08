@@ -52,10 +52,17 @@ function prerenderIssue(distDir: string, template: string, slug: string, origin:
 
   const meta = buildIssueMeta(parsed, slug);
   const html = injectIssueMeta(template, meta, origin);
-  writeFileSync(join(distDir, 'issue', `${slug}.html`), html, 'utf-8');
+
+  // Emit issue/<slug>/index.html (not issue/<slug>.html): with `.nojekyll`,
+  // GitHub Pages does not serve pretty URLs, but it does 301-redirect
+  // /issue/<slug> -> /issue/<slug>/ and serve the directory's index.html —
+  // which is the extensionless path the router and shared links actually use.
+  const outputDir = join(distDir, 'issue', slug);
+  mkdirSync(outputDir, { recursive: true });
+  writeFileSync(join(outputDir, 'index.html'), html, 'utf-8');
 
   const imageNote = meta.imagePath === null ? 'logo fallback' : meta.imagePath;
-  process.stderr.write(`  Prerendered issue/${slug}.html (image: ${imageNote})\n`);
+  process.stderr.write(`  Prerendered issue/${slug}/index.html (image: ${imageNote})\n`);
 }
 
 function main(): void {
@@ -66,8 +73,6 @@ function main(): void {
   process.stderr.write(`Prerendering issue pages with origin ${origin}\n`);
   const template = readFileSync(join(distDir, 'index.html'), 'utf-8');
   const registry = loadRegistry(join(distDir, 'registry.json'));
-
-  mkdirSync(join(distDir, 'issue'), { recursive: true });
 
   for (const issue of registry.issues) {
     prerenderIssue(distDir, template, issue.slug, origin);
