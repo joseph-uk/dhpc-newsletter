@@ -19,7 +19,7 @@ function isIssue(value: unknown): value is Issue {
   );
 }
 
-function isRegistry(value: unknown): value is Registry {
+export function isRegistry(value: unknown): value is Registry {
   if (!isStringRecord(value)) return false;
   const issues = value['issues'];
   return Array.isArray(issues) && issues.every(isIssue);

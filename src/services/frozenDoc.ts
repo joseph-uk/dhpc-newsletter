@@ -19,7 +19,7 @@ function isSection(value: unknown): value is Section {
   );
 }
 
-function isDocData(value: unknown): value is DocData {
+export function isDocData(value: unknown): value is DocData {
   if (!isStringRecord(value)) return false;
   const sections = value['sections'];
   return (

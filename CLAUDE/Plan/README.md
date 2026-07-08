@@ -10,7 +10,7 @@ folder (e.g. `00001-feature-name/`) with a `PLAN.md` file.
 
 ## Active Plans
 
-_No active plans._
+- [00006-social-preview-og-tags](00006-social-preview-og-tags/PLAN.md) — Build-time prerendered Open Graph / Twitter Card previews with auto-selected landscape images
 
 ## Completed Plans
 
@@ -21,6 +21,6 @@ _No active plans._
 
 ## Statistics
 
-- **Total**: 4
-- **Active**: 0
+- **Total**: 5
+- **Active**: 1
 - **Completed**: 4
