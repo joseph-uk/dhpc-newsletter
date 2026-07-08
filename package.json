@@ -8,6 +8,7 @@
     "build": "tsc -b && vite build",
     "cache": "tsx scripts/cache.ts",
     "freeze": "tsx scripts/freeze.ts",
+    "prerender": "tsx scripts/prerender.ts",
     "gdrive:discover": "tsx scripts/gdrive-discover.ts",
     "lint": "eslint .",
     "test": "vitest run",

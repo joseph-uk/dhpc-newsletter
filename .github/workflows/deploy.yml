@@ -34,6 +34,9 @@ jobs:
       - run: npm run build
         env:
           VITE_PRERELEASE_PASSWORD_HASH: ${{ secrets.PRERELEASE_PASSWORD_HASH }}
+      - run: npm run prerender
+        env:
+          VITE_SITE_ORIGIN: ${{ vars.SITE_ORIGIN }}
       - uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
