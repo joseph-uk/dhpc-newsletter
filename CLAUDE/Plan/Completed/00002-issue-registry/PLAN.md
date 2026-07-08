@@ -1,4 +1,16 @@
-# Plan: Issue Registry System
+# Plan 00002: Issue Registry System
+
+**Status**: Complete
+**Created**: 2026-03-04
+**Owner**: Claude
+**Priority**: High
+
+Delivered: the CSV-driven issue registry shipped — `issues.csv` (populated with
+the full 2022–2026 backlog), `src/types/Registry.ts`, `src/services/registry.ts`,
+`src/services/frozenDoc.ts`, `src/services/passwordCheck.ts`, `scripts/freeze.ts`,
+and the `IssueIndex` / `PasswordGate` components. The lifecycle later evolved a
+richer `disabled:<reason>` status set and path-based caching (plan 00003), but
+the registry system described here is in production.
 
 ## Context
 
@@ -52,31 +64,31 @@ Legacy `#url=` / `#id=` mode is preserved as a fallback (no UI to reach it — U
 
 ### New Files
 
-| File | Purpose |
-|------|---------|
-| `issues.csv` | Issue registry (slug, title, doc_url, status) |
-| `scripts/freeze.ts` | Build-time: reads CSV, freezes issues, generates registry.json |
-| `src/types/Registry.ts` | `IssueStatus`, `Issue`, `Registry` interfaces |
-| `src/services/docParserCore.ts` | Extracted DOM parsing logic (environment-agnostic) |
-| `src/services/registry.ts` | Loads + validates registry.json at runtime |
-| `src/services/frozenDoc.ts` | Loads + validates frozen issue JSON at runtime |
-| `src/services/passwordCheck.ts` | SHA-256 password comparison via Web Crypto |
-| `src/components/IssueIndex/IssueIndex.tsx` + `.module.css` | Issue listing page |
-| `src/components/PasswordGate/PasswordGate.tsx` + `.module.css` | Password prompt |
-| `tsconfig.scripts.json` | TypeScript config for scripts/ (Node + DOM libs) |
-| `.env.example` | Documents VITE_PRERELEASE_PASSWORD_HASH |
+| File                                                           | Purpose                                                        |
+| -------------------------------------------------------------- | -------------------------------------------------------------- |
+| `issues.csv`                                                   | Issue registry (slug, title, doc_url, status)                  |
+| `scripts/freeze.ts`                                            | Build-time: reads CSV, freezes issues, generates registry.json |
+| `src/types/Registry.ts`                                        | `IssueStatus`, `Issue`, `Registry` interfaces                  |
+| `src/services/docParserCore.ts`                                | Extracted DOM parsing logic (environment-agnostic)             |
+| `src/services/registry.ts`                                     | Loads + validates registry.json at runtime                     |
+| `src/services/frozenDoc.ts`                                    | Loads + validates frozen issue JSON at runtime                 |
+| `src/services/passwordCheck.ts`                                | SHA-256 password comparison via Web Crypto                     |
+| `src/components/IssueIndex/IssueIndex.tsx` + `.module.css`     | Issue listing page                                             |
+| `src/components/PasswordGate/PasswordGate.tsx` + `.module.css` | Password prompt                                                |
+| `tsconfig.scripts.json`                                        | TypeScript config for scripts/ (Node + DOM libs)               |
+| `.env.example`                                                 | Documents VITE_PRERELEASE_PASSWORD_HASH                        |
 
 ### Modified Files
 
-| File | Change |
-|------|--------|
-| `src/services/docParser.ts` | Thin wrapper: calls `parseDocument()` from docParserCore |
-| `src/services/urlParams.ts` | Add `HashMode` discriminated union, `getHashMode()`, `setIssueSlug()` |
-| `src/App.tsx` | New state machine (7 states), new handlers, new component imports |
-| `src/components/DocumentIndex/DocumentIndex.tsx` | Add optional `onBackToIndex` prop |
-| `.github/workflows/deploy.yml` | Add `npm run freeze` step + env var |
-| `eslint.config.js` | Add scripts/ override (node globals) |
-| `package.json` | Add `freeze` script, add jsdom + tsx dev deps |
+| File                                             | Change                                                                |
+| ------------------------------------------------ | --------------------------------------------------------------------- |
+| `src/services/docParser.ts`                      | Thin wrapper: calls `parseDocument()` from docParserCore              |
+| `src/services/urlParams.ts`                      | Add `HashMode` discriminated union, `getHashMode()`, `setIssueSlug()` |
+| `src/App.tsx`                                    | New state machine (7 states), new handlers, new component imports     |
+| `src/components/DocumentIndex/DocumentIndex.tsx` | Add optional `onBackToIndex` prop                                     |
+| `.github/workflows/deploy.yml`                   | Add `npm run freeze` step + env var                                   |
+| `eslint.config.js`                               | Add scripts/ override (node globals)                                  |
+| `package.json`                                   | Add `freeze` script, add jsdom + tsx dev deps                         |
 
 ### Unchanged Files
 
@@ -208,11 +220,13 @@ type AppState =
 ```
 
 **Flow:**
+
 - No hash → `registry-loading` → `index` (or `idle` if registry empty)
 - `#issue=slug` → `registry-loading` → `password` (if pre-release) or `loading` → `loaded`
 - `#url=`/`#id=` → `loading` → `loaded` (legacy path, skips registry)
 
 **Handlers:**
+
 - `handleIssueSelect(slug)` — sets hash, navigates to issue
 - `handlePasswordSubmit(password)` — checks password, transitions to loading
 - `handleBackToIndex()` — returns to issue list
@@ -285,6 +299,7 @@ Add override for `scripts/**/*.ts` with `globals.node` instead of `globals.brows
 ## Task Breakdown
 
 ### Task 1: Foundation — Types + URL params + CSV (no dependencies)
+
 - Create `src/types/Registry.ts`
 - Extend `src/services/urlParams.ts` with `HashMode`, `getHashMode()`, `setIssueSlug()`
 - Create `issues.csv` with test data
@@ -292,26 +307,31 @@ Add override for `scripts/**/*.ts` with `globals.node` instead of `globals.brows
 - Create `.env.example`
 
 ### Task 2: Parser refactor — Extract docParserCore (depends on Task 1)
+
 - Create `src/services/docParserCore.ts` (move logic from docParser.ts)
 - Simplify `src/services/docParser.ts` to thin wrapper
 - Verify `npm run build` and `npm run lint` still pass
 
 ### Task 3: Runtime services (depends on Task 1)
+
 - Create `src/services/registry.ts` (load + validate registry.json)
 - Create `src/services/frozenDoc.ts` (load + validate frozen JSON)
 - Create `src/services/passwordCheck.ts` (SHA-256 via Web Crypto)
 
 ### Task 4: UI components (depends on Task 1)
+
 - Create `src/components/IssueIndex/IssueIndex.tsx` + CSS
 - Create `src/components/PasswordGate/PasswordGate.tsx` + CSS
 - Modify `src/components/DocumentIndex/DocumentIndex.tsx` (add onBackToIndex)
 
 ### Task 5: App.tsx rewrite (depends on Tasks 2, 3, 4)
+
 - Rewrite state machine with 7-state discriminated union
 - Wire all new services and components
 - Verify full app works with registry
 
 ### Task 6: Freeze script + CI/CD (depends on Task 2)
+
 - Install jsdom + tsx dev dependencies
 - Create `scripts/freeze.ts`
 - Add `freeze` script to package.json
@@ -319,6 +339,7 @@ Add override for `scripts/**/*.ts` with `globals.node` instead of `globals.brows
 - Update `eslint.config.js` with scripts/ override
 
 ### Task 7: Code review gate (depends on all)
+
 - Security review (Opus) — XSS, password handling, URL safety
 - Quality review (Opus) — all CLAUDE.md standards
 - Both must PASS

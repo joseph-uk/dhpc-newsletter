@@ -1,7 +1,7 @@
 ---
 id: "00001"
 title: "Rebuild Skywords as React/TypeScript SPA with GitHub Pages deploy"
-status: in-progress
+status: complete
 created: 2026-03-04
 updated: 2026-03-04
 author: "Claude"
@@ -10,6 +10,19 @@ tags: [react, typescript, vite, github-actions, github-pages, google-docs]
 ---
 
 # Plan 00001 — Skywords React/TypeScript Rebuild
+
+**Status**: Complete
+**Created**: 2026-03-04
+**Owner**: Claude
+**Priority**: High
+
+Delivered: the React 18 + TypeScript + Vite app is built, deployed to GitHub
+Pages via `.github/workflows/deploy.yml`, and in production — newsletters are
+published monthly through the live site. All services (`fetchDoc`, `docParser`,
+`router`) and components (`Header`, `Instructions`, `DocumentIndex`,
+`SectionView`, `NavigationControls`, `LoadingSpinner`, `ErrorMessage`) shipped.
+Superseded and extended by plans 00002, 00003 and 00005. Task checkboxes below
+are retained as the original plan record.
 
 ## Overview
 
@@ -29,16 +42,16 @@ for the component tree.
 
 ## Current System Analysis
 
-| Aspect | Current | Problem |
-|--------|---------|---------|
-| Framework | AngularJS 1.5.6 (EOL 2021) | Security risk, no updates |
-| DOM manipulation | jQuery 3.x + AngularJS `$scope` | Mixed paradigms, hard to maintain |
-| Build process | None — raw files served | No type checking, no minification |
-| Deployment | Manual FTP/rsync to shared host | Error-prone, no CI |
-| Styling | W3.CSS + inline CSS vars | External CDN dependency |
-| HTML sanitisation | None (`ng-bind-html` via `ngSanitize`) | XSS risk from doc content |
-| Link rewriting | Regex on Google redirect URLs | Brittle regex |
-| List indentation | Class sniffing on Google Docs `ul` class names | Fragile |
+| Aspect            | Current                                        | Problem                           |
+| ----------------- | ---------------------------------------------- | --------------------------------- |
+| Framework         | AngularJS 1.5.6 (EOL 2021)                     | Security risk, no updates         |
+| DOM manipulation  | jQuery 3.x + AngularJS `$scope`                | Mixed paradigms, hard to maintain |
+| Build process     | None — raw files served                        | No type checking, no minification |
+| Deployment        | Manual FTP/rsync to shared host                | Error-prone, no CI                |
+| Styling           | W3.CSS + inline CSS vars                       | External CDN dependency           |
+| HTML sanitisation | None (`ng-bind-html` via `ngSanitize`)         | XSS risk from doc content         |
+| Link rewriting    | Regex on Google redirect URLs                  | Brittle regex                     |
+| List indentation  | Class sniffing on Google Docs `ul` class names | Fragile                           |
 
 ---
 
@@ -57,17 +70,17 @@ for the component tree.
 
 ## Tech Stack
 
-| Role | Choice | Rationale |
-|------|--------|-----------|
-| UI framework | React 18 | Modern, stable, excellent TS support |
-| Language | TypeScript 5.x | Type safety, better maintainability |
-| Build tool | Vite 5.x | Fast HMR, simple GH Pages config |
-| Styling | CSS Modules + CSS custom properties | Scoped styles, no extra runtime |
-| HTML sanitisation | DOMPurify | Industry standard, lightweight |
-| Fonts | Google Fonts (Commissioner) — same as current | Visual continuity |
-| Icons | Font Awesome 6 via CDN | Same as current |
-| Linting | ESLint + typescript-eslint | Code quality |
-| Deployment | GitHub Actions + `peaceiris/actions-gh-pages` | Standard approach |
+| Role              | Choice                                        | Rationale                            |
+| ----------------- | --------------------------------------------- | ------------------------------------ |
+| UI framework      | React 18                                      | Modern, stable, excellent TS support |
+| Language          | TypeScript 5.x                                | Type safety, better maintainability  |
+| Build tool        | Vite 5.x                                      | Fast HMR, simple GH Pages config     |
+| Styling           | CSS Modules + CSS custom properties           | Scoped styles, no extra runtime      |
+| HTML sanitisation | DOMPurify                                     | Industry standard, lightweight       |
+| Fonts             | Google Fonts (Commissioner) — same as current | Visual continuity                    |
+| Icons             | Font Awesome 6 via CDN                        | Same as current                      |
+| Linting           | ESLint + typescript-eslint                    | Code quality                         |
+| Deployment        | GitHub Actions + `peaceiris/actions-gh-pages` | Standard approach                    |
 
 ---
 
@@ -112,13 +125,13 @@ Task 1: scaffolder (main branch)
 
 ### Agent Assignments
 
-| Task | Agent | Worktree | Phases | Model |
-|------|-------|----------|--------|-------|
-| 1. Project scaffolding | `scaffolder` | no (main) | Phase 0 | sonnet |
-| 2. CI/CD pipeline | `ci-cd` | yes | Phase 1 | haiku |
-| 3. Types + services | `services` | yes | Phase 2 + 3 | sonnet |
-| 4. UI + styling | `ui` | yes | Phase 4 + 5 + 6 + 7 | sonnet |
-| 5. QA + docs | `qa` | yes | Phase 8 + 9 | sonnet |
+| Task                   | Agent        | Worktree  | Phases              | Model  |
+| ---------------------- | ------------ | --------- | ------------------- | ------ |
+| 1. Project scaffolding | `scaffolder` | no (main) | Phase 0             | sonnet |
+| 2. CI/CD pipeline      | `ci-cd`      | yes       | Phase 1             | haiku  |
+| 3. Types + services    | `services`   | yes       | Phase 2 + 3         | sonnet |
+| 4. UI + styling        | `ui`         | yes       | Phase 4 + 5 + 6 + 7 | sonnet |
+| 5. QA + docs           | `qa`         | yes       | Phase 8 + 9         | sonnet |
 
 ### Mandatory Code Review Gate
 
@@ -328,13 +341,13 @@ Read `CLAUDE/Plan/00001-skywords-rebuild/CURRENT-SYSTEM.md` for current site CSS
 
 ## Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|-----------|--------|-----------|
-| Google Docs CORS blocks browser fetch | Low | High | `/pub?embedded=true` endpoint has open CORS; confirmed working in current implementation |
-| Google Docs HTML structure changes | Medium | High | Parser is isolated in `docParser.ts` — easy to update |
-| GitHub Pages base path issues | Low | Medium | Vite `base` config handles this; test early |
-| DOMPurify strips legitimate formatting | Low | Low | Configure allowlist to preserve Google Docs tags (img, table, span) |
-| Logo asset availability | Low | Low | Fetch from current site or use text fallback |
+| Risk                                   | Likelihood | Impact | Mitigation                                                                               |
+| -------------------------------------- | ---------- | ------ | ---------------------------------------------------------------------------------------- |
+| Google Docs CORS blocks browser fetch  | Low        | High   | `/pub?embedded=true` endpoint has open CORS; confirmed working in current implementation |
+| Google Docs HTML structure changes     | Medium     | High   | Parser is isolated in `docParser.ts` — easy to update                                    |
+| GitHub Pages base path issues          | Low        | Medium | Vite `base` config handles this; test early                                              |
+| DOMPurify strips legitimate formatting | Low        | Low    | Configure allowlist to preserve Google Docs tags (img, table, span)                      |
+| Logo asset availability                | Low        | Low    | Fetch from current site or use text fallback                                             |
 
 ---
 

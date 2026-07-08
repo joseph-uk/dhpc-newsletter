@@ -1,4 +1,14 @@
-# Plan: Google Drive Newsletter Discovery CLI
+# Plan 00005: Google Drive Newsletter Discovery CLI
+
+**Status**: Complete
+**Created**: 2026-03-05
+**Owner**: Claude
+**Priority**: Medium
+
+Delivered: the OAuth2 Drive discovery CLI shipped — `scripts/gdrive-discover.ts`,
+`scripts/lib/googleAuth.ts`, `scripts/lib/driveClient.ts`, and CSV write helpers
+in `scripts/lib/csv.ts`. `scripts/.credentials/` is gitignored. The tool was run
+to populate `issues.csv` with the full newsletter backlog.
 
 ## Context
 
@@ -18,13 +28,17 @@ Adding new newsletter issues to the site currently requires manually finding eac
 ## Security Hardening
 
 ### Step 1: Gitignore patterns
+
 Add to `.gitignore`:
+
 ```
 scripts/.credentials/
 ```
 
 ### Step 2: Credential file validation
+
 Before writing any token file, the script must verify:
+
 - `scripts/.credentials/` is listed in `.gitignore`
 - The directory has restrictive permissions (700)
 
@@ -32,22 +46,22 @@ Before writing any token file, the script must verify:
 
 ### Files to create (TDD - tests first):
 
-| File | Purpose |
-|------|---------|
-| `scripts/lib/googleAuth.ts` | OAuth2 browser flow: load client secret, open browser, exchange code, store/refresh tokens |
-| `scripts/lib/googleAuth.test.ts` | Tests for token validation, credential loading |
-| `scripts/lib/driveClient.ts` | Drive API wrapper: list Google Docs in a folder |
-| `scripts/lib/driveClient.test.ts` | Tests for response parsing, slug extraction |
-| `scripts/gdrive-discover.ts` | CLI entry point |
+| File                              | Purpose                                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------------------ |
+| `scripts/lib/googleAuth.ts`       | OAuth2 browser flow: load client secret, open browser, exchange code, store/refresh tokens |
+| `scripts/lib/googleAuth.test.ts`  | Tests for token validation, credential loading                                             |
+| `scripts/lib/driveClient.ts`      | Drive API wrapper: list Google Docs in a folder                                            |
+| `scripts/lib/driveClient.test.ts` | Tests for response parsing, slug extraction                                                |
+| `scripts/gdrive-discover.ts`      | CLI entry point                                                                            |
 
 ### Files to modify:
 
-| File | Change |
-|------|--------|
-| `.gitignore` | Add `scripts/.credentials/` |
-| `package.json` | Add `"gdrive:discover"` script |
-| `scripts/lib/csv.ts` | Add `formatCsvRow()` and `appendCsvRow()` for writing |
-| `scripts/lib/csv.test.ts` | Tests for new CSV write functions |
+| File                      | Change                                                |
+| ------------------------- | ----------------------------------------------------- |
+| `.gitignore`              | Add `scripts/.credentials/`                           |
+| `package.json`            | Add `"gdrive:discover"` script                        |
+| `scripts/lib/csv.ts`      | Add `formatCsvRow()` and `appendCsvRow()` for writing |
+| `scripts/lib/csv.test.ts` | Tests for new CSV write functions                     |
 
 ### Dependency:
 
@@ -94,6 +108,7 @@ extractSlugFromTitle(title) -> string | null
 #### 3. `scripts/gdrive-discover.ts`
 
 CLI interface:
+
 ```
 npm run gdrive:discover -- --folder-id=<FOLDER_ID>
 npm run gdrive:discover -- --folder-id=<FOLDER_ID> --status=published
@@ -101,6 +116,7 @@ npm run gdrive:discover -- --folder-id=<FOLDER_ID> --dry-run
 ```
 
 Flow:
+
 1. Parse args (folder-id required, status defaults to "published", dry-run flag)
 2. Authenticate via OAuth2
 3. List all Google Docs in the folder
@@ -120,6 +136,7 @@ Flow:
 #### 4. CSV write extension (`scripts/lib/csv.ts`)
 
 Add:
+
 - `formatCsvRow(row: CsvRow): string` — formats a row as CSV
 - `appendCsvRow(csvPath: string, row: CsvRow): void` — appends to file with trailing newline
 
