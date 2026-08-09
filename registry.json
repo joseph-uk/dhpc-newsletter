@@ -223,6 +223,13 @@
       "docUrl": "https://docs.google.com/document/d/e/2PACX-1vQiySYOw15ccNZJECRQiWqd8jXnzwCRJfABBFN0tZUJBZ6k_BMHi9_dqcIxAkO5uGjICSzphLf6NWJH/pub",
       "status": "published",
       "contentHash": "ee403b1f0cc5cc3d6bdf82c0ab542cc724013f59c4214624d657b1b3d5a1229d"
+    },
+    {
+      "slug": "2026-09",
+      "title": "September 2026",
+      "docUrl": "https://docs.google.com/document/d/e/2PACX-1vTHtXkcNzJPbJkhZXBNCpM1kYrFVkbB0QziMDDcK1kKjkfBxf9dgw1VN0_kOYM9pblKrg8j0CuC-TYN/pub",
+      "status": "pre-release",
+      "contentHash": "450ca14fbd519697edf6bf1ff29f40784a81901a13acc4fc6dc1cb3933a3a7b9"
     }
   ]
 }
