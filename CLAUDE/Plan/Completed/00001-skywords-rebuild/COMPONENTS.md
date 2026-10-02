@@ -21,6 +21,7 @@ App
 Root component. Owns all application state.
 
 **State:**
+
 ```typescript
 type AppStatus = 'idle' | 'loading' | 'loaded' | 'error';
 
@@ -33,6 +34,7 @@ interface AppState {
 ```
 
 **On mount (`useEffect`):**
+
 1. Call `getDocUrl()` from `urlParams.ts`
 2. If `null` → set `status: 'idle'`
 3. If URL → set `status: 'loading'`, call `fetchGoogleDoc(url)`, then `parseGoogleDoc(html)`
@@ -40,6 +42,7 @@ interface AppState {
 5. On failure → set `status: 'error'`, `error: message`
 
 **Handlers:**
+
 - `handleUrlSubmit(url: string)` → calls `setDocUrl(url)` which reloads page
 - `handleSectionSelect(index: number)` → sets `currentSection: index`
 - `handleHome()` → sets `currentSection: null`
@@ -54,6 +57,7 @@ interface AppState {
 **Props:** none
 
 **Renders:**
+
 - `<header>` with DHPC dark blue background
 - Club logo (`/dhcp_logo.jpeg`) positioned left — hidden below 600px
 - Site title "Skywords" centred
@@ -67,6 +71,7 @@ interface AppState {
 Shown when no `#url=` hash is present (first visit / unknown URL).
 
 **Props:**
+
 ```typescript
 interface InstructionsProps {
   onSubmit: (url: string) => void;
@@ -74,6 +79,7 @@ interface InstructionsProps {
 ```
 
 **Renders:**
+
 - Brief explanation: "Paste a published Google Docs URL to view it as a newsletter"
 - URL `<input>` (controlled)
 - "Load" `<button>`
@@ -87,6 +93,7 @@ interface InstructionsProps {
 The "home" screen after a doc is loaded. Lists all sections.
 
 **Props:**
+
 ```typescript
 interface DocumentIndexProps {
   doc: DocData;
@@ -95,6 +102,7 @@ interface DocumentIndexProps {
 ```
 
 **Renders:**
+
 - Doc title (large, uppercase, centred) — from `doc.title`
 - For each `doc.sections[i]`:
   - Clickable row with section title
@@ -110,6 +118,7 @@ interface DocumentIndexProps {
 Displays a single section with all its subsections.
 
 **Props:**
+
 ```typescript
 interface SectionViewProps {
   section: Section;
@@ -122,6 +131,7 @@ interface SectionViewProps {
 ```
 
 **Renders:**
+
 - Section title (large, uppercase, centred)
 - Section intro HTML (`section.content`) via `dangerouslySetInnerHTML`
 - For each subsection:
@@ -138,6 +148,7 @@ interface SectionViewProps {
 Back / Home / Next button row.
 
 **Props:**
+
 ```typescript
 interface NavigationControlsProps {
   onBack: () => void;
@@ -149,6 +160,7 @@ interface NavigationControlsProps {
 ```
 
 **Renders:**
+
 ```
 [ ← Back ]   [ ⌂ Home ]   [ Next → ]
 ```
@@ -162,6 +174,7 @@ Uses Font Awesome icons (`fa-arrow-left`, `fa-home`, `fa-arrow-right`).
 **Props:** none
 
 **Renders:**
+
 - Centred spinner animation (CSS-only, no GIF)
 - "Loading document…" text
 
@@ -170,6 +183,7 @@ Uses Font Awesome icons (`fa-arrow-left`, `fa-home`, `fa-arrow-right`).
 ## ErrorMessage (`src/components/ErrorMessage/`)
 
 **Props:**
+
 ```typescript
 interface ErrorMessageProps {
   message: string;
@@ -178,6 +192,7 @@ interface ErrorMessageProps {
 ```
 
 **Renders:**
+
 - Error icon (Font Awesome `fa-exclamation-triangle`)
 - Error message text
 - "Try Again" button → calls `onRetry()`
@@ -190,6 +205,7 @@ interface ErrorMessageProps {
 All components use CSS Modules (`.module.css`) for scoped class names.
 
 Global styles in `src/index.css`:
+
 - CSS custom properties (colour palette)
 - Font import (`Commissioner` via Google Fonts)
 - Base resets

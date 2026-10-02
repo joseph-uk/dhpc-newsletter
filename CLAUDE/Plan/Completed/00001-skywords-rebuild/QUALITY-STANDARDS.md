@@ -56,13 +56,13 @@ The additional flags close loopholes that `strict` misses.
 
 ### What To Do Instead
 
-| Banned pattern | Use instead |
-|---------------|-------------|
-| `value as Type` | Type guard function: `function isType(v: unknown): v is Type` |
-| `any` | `unknown` with narrowing |
-| `JSON.parse(str)` | Parse, then validate with a type guard |
-| `obj!.prop` | `if (obj === null) throw new Error(...)` |
-| `@ts-ignore` | Fix the type error properly |
+| Banned pattern    | Use instead                                                   |
+| ----------------- | ------------------------------------------------------------- |
+| `value as Type`   | Type guard function: `function isType(v: unknown): v is Type` |
+| `any`             | `unknown` with narrowing                                      |
+| `JSON.parse(str)` | Parse, then validate with a type guard                        |
+| `obj!.prop`       | `if (obj === null) throw new Error(...)`                      |
+| `@ts-ignore`      | Fix the type error properly                                   |
 
 ---
 
@@ -124,6 +124,7 @@ Build only what is needed right now. No speculative features, no premature abstr
 ### What IS Allowed
 
 Good architecture and clean code are not YAGNI violations:
+
 - Clear interfaces between modules
 - Proper error handling
 - Type safety
@@ -212,6 +213,7 @@ AI-generated code tends to "overfit" — fixing the exact test case while breaki
 ### Self-Check Questions
 
 Before committing any fix, ask:
+
 1. Does this work for inputs I haven't tested?
 2. Did I preserve the original function's generality?
 3. Are there hardcoded values that should be parameters?
@@ -227,12 +229,12 @@ Separate business logic from infrastructure. Domain objects contain only logic a
 
 ### Application to This Project
 
-| Layer | Contains | Does NOT contain |
-|-------|----------|------------------|
-| `src/types/` | Interfaces, type definitions | Logic, imports from React |
-| `src/services/` | Pure functions: parsing, URL handling, fetch | React hooks, DOM manipulation, component state |
-| `src/components/` | UI rendering, event handlers | Data fetching, parsing logic, business rules |
-| `src/App.tsx` | Orchestration: connects services to components | Direct DOM manipulation, parsing logic |
+| Layer             | Contains                                       | Does NOT contain                               |
+| ----------------- | ---------------------------------------------- | ---------------------------------------------- |
+| `src/types/`      | Interfaces, type definitions                   | Logic, imports from React                      |
+| `src/services/`   | Pure functions: parsing, URL handling, fetch   | React hooks, DOM manipulation, component state |
+| `src/components/` | UI rendering, event handlers                   | Data fetching, parsing logic, business rules   |
+| `src/App.tsx`     | Orchestration: connects services to components | Direct DOM manipulation, parsing logic         |
 
 - `docParser.ts` uses `DOMParser` (browser API) but is otherwise pure: string in, `DocData` out
 - `fetchDoc.ts` does one thing: fetch a URL, return HTML string
@@ -261,6 +263,7 @@ Separate business logic from infrastructure. Domain objects contain only logic a
 The scaffolder agent must set up this ESLint config. Use flat config format (`eslint.config.js`).
 
 Required packages:
+
 ```
 eslint
 @typescript-eslint/eslint-plugin
@@ -269,6 +272,7 @@ typescript-eslint
 ```
 
 Minimum rule set:
+
 ```javascript
 {
   // TypeScript strictness

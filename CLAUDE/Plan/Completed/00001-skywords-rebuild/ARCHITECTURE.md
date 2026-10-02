@@ -47,8 +47,9 @@ loaded     → idle     (user clears URL — not implemented in v1)
 ```
 
 Within `loaded` state, `currentSection` drives navigation:
+
 - `null` → render `<DocumentIndex>`
-- `0..n`  → render `<SectionView index={currentSection}>`
+- `0..n` → render `<SectionView index={currentSection}>`
 
 ---
 
@@ -82,6 +83,7 @@ export function parseGoogleDoc(html: string): DocData
 - Returns `DocData`
 
 **Why DOMParser over jQuery `#temp` div:**
+
 - No real DOM attachment means no flash/layout side effects
 - Scripts in fetched content never execute
 - Cleaner API, no jQuery dependency
@@ -102,6 +104,7 @@ export function setDocUrl(url: string): void
 ## Link Rewriting
 
 Google Docs wraps external links in a redirect:
+
 ```
 https://www.google.com/url?q=https%3A%2F%2Factual-url.com&sa=D&source=...
 ```
@@ -146,6 +149,7 @@ ul[data-indent="2"] { margin-left: 80px; }
 
 Parsed and sanitised HTML strings are rendered via React's `dangerouslySetInnerHTML`.
 DOMPurify is configured to allow:
+
 - All standard block/inline elements present in Google Docs output
 - `img` with `src` (Google Docs images are hosted on `lh3.googleusercontent.com`)
 - `a` with `href`, `target`, `rel`
@@ -153,6 +157,7 @@ DOMPurify is configured to allow:
 - `span` with `style` (Google Docs uses inline styles for formatting)
 
 Explicitly stripped by DOMPurify:
+
 - `<script>`, `<style>` tags (not needed, we apply our own styles)
 - `on*` event attributes
 - `javascript:` URLs
@@ -205,6 +210,7 @@ jobs:
 ## CORS Considerations
 
 Google Docs `/pub` URLs return:
+
 ```
 Access-Control-Allow-Origin: *
 ```

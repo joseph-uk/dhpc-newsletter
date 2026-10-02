@@ -219,6 +219,13 @@ The redirect handler intercepts `~/.claude/plans/` writes as a safety net only.
 |----------|---------|----------|-------------|
 | 10 | agent_terminated_early_failure_detector | ADVISORY | PostToolUseFailure advisory: surfaces a foreground Agent/Task dispatch killed by a harness usage limit |
 
+### Pseudo Nitpick (2 handlers)
+
+| Priority | Handler | Behaviour | Description |
+|----------|---------|----------|-------------|
+| 10 | dismissive_language | ADVISORY | Detect dismissive language in assistant messages via nitpick pseudo-event |
+| 20 | hedging_language | ADVISORY | Detect hedging language in assistant messages via nitpick pseudo-event |
+
 ## Quick Config Reference
 
 **Config file**: `.claude/hooks-daemon.yaml`

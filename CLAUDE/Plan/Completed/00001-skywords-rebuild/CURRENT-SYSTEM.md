@@ -16,6 +16,7 @@ The app uses hash-based routing:
 - No hash → shows the instructions/URL input screen
 
 Example:
+
 ```
 https://www.dhpc.org.uk/skywords/#url=https://docs.google.com/document/d/e/2PACX-1vSv7aTai2yfObOHeDmYhtKpXFTQejk7imMRBqzlefdnvKGEHtBsWLlF-xIGUSbMphLnwFub-9jrvHaR/pub
 ```
@@ -511,14 +512,14 @@ The `formatContent()` function does the following:
 
 ## External Dependencies (current)
 
-| Dependency | URL | Purpose |
-|-----------|-----|---------|
-| AngularJS 1.5.6 | ajax.googleapis.com | Framework |
-| angular-sanitize 1.5.6 | ajax.googleapis.com | HTML sanitisation |
-| jQuery 3.6.0 | code.jquery.com | DOM manipulation |
-| W3.CSS | w3schools.com/w3css/4/w3.css | CSS framework |
-| Font Awesome 6.5.0 | cdnjs.cloudflare.com | Icons |
-| Commissioner font | fonts.googleapis.com | Typography |
+| Dependency             | URL                          | Purpose           |
+| ---------------------- | ---------------------------- | ----------------- |
+| AngularJS 1.5.6        | ajax.googleapis.com          | Framework         |
+| angular-sanitize 1.5.6 | ajax.googleapis.com          | HTML sanitisation |
+| jQuery 3.6.0           | code.jquery.com              | DOM manipulation  |
+| W3.CSS                 | w3schools.com/w3css/4/w3.css | CSS framework     |
+| Font Awesome 6.5.0     | cdnjs.cloudflare.com         | Icons             |
+| Commissioner font      | fonts.googleapis.com         | Typography        |
 
 In the rebuild, only Font Awesome and Commissioner font remain as CDN dependencies.
 Everything else is replaced by React, DOMPurify, and CSS Modules.

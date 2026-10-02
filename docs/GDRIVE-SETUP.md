@@ -117,6 +117,7 @@ npm run dev
 ### Title Parsing
 
 The tool extracts slugs from document titles containing a month name and year:
+
 - `Skywords December 2024` -> `2024-12`
 - `DHPC Newsletter March 2026` -> `2026-03`
 - `February 2025` -> `2025-02`
@@ -137,22 +138,28 @@ The tool constructs URLs in the format `https://docs.google.com/document/d/{docI
 ## Troubleshooting
 
 ### Wrong project selected
+
 If you see APIs or settings from a previous project (e.g. Google Sheets API), you're in the wrong project. Click the **project name dropdown** at the top of the page and switch to the correct one.
 
 ### "Free trial has ended" warning
+
 This does not affect the Google Drive API. Drive API read-only usage is free and does not require a billing account. You can dismiss this warning or upgrade — either way, you won't be charged for Drive reads.
 
 ### "client_secret.json not found"
+
 Download OAuth2 credentials from Google Cloud Console (Step 4) and save to `scripts/.credentials/client_secret.json`.
 
 ### "Access denied" or 403 error
+
 - Ensure you added your email as a test user (Step 3, point 5)
 - Ensure the Drive API is enabled (Step 2)
 - Ensure the documents are in a folder your account can access
 - Ensure you're in the correct Google Cloud project (check the dropdown at the top)
 
 ### Documents skipped with "cannot extract month/year"
+
 The document title doesn't match the expected pattern. Rename the document in Google Drive to include the month name and four-digit year, e.g. "Skywords January 2025".
 
 ### Token expired
+
 Delete `scripts/.credentials/token.json` and run the command again to re-authenticate.
