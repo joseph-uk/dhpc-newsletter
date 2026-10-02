@@ -574,6 +574,14 @@ One line each; these fire with their own guidance when relevant. Full text: `bin
 
 - model_fallback_detector — silent model substitution is surfaced
 
+<!-- handler: nitpick-dismissive-language -->
+
+- nitpick.dismissive_language — do not deflect or prematurely halt
+
+<!-- handler: nitpick-hedging-language -->
+
+- nitpick.hedging_language — the guessing is the defect, not the wording
+
 <!-- handler: persistent-cron-assertor -->
 
 - persistent_cron_assertor — declared crons are re-established each session
