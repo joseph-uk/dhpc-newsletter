@@ -27,6 +27,10 @@ npm run test:coverage # run tests with coverage report
 
 GitHub Actions auto-deploys to GitHub Pages on push to `main`.
 
+### Pushing — standing authorisation
+
+The project owner has given standing authorisation to push. After committing, always push to `origin` without asking (run `git pull --rebase` first, because the Actions bot pushes cached-data commits to `main`). This authorises normal pushes only; force-pushes remain forbidden.
+
 ## Key Decisions
 
 - Vite + React 18 + TypeScript (strictest config)
