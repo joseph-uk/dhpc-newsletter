@@ -67,10 +67,6 @@ handlers:
       enabled: true
       priority: 21
 
-    daemon_restart_verifier: # Verifies daemon restart after code changes
-      enabled: false       # Enable for daemon development projects
-      priority: 22
-
     worktree_file_copy:    # Prevents copying files between git worktrees
       enabled: true
       priority: 16
@@ -95,7 +91,7 @@ handlers:
       priority: 38
       options:
         mode: block_once       # advisory | block_once | strict
-        no_lsp_mode: block     # block | advisory | disable
+        no_lsp_mode: advisory  # block | advisory | disable — no LSP plugin installed, so blocking only yields false positives
 
     # WORKFLOW HANDLERS (Priority 30-50) - Enable based on your workflow
     plan_number_helper:    # Provides correct next plan number
@@ -104,17 +100,9 @@ handlers:
       options:
         track_plans_in_project: "CLAUDE/Plan"  # Must match markdown_organization setting
 
-    task_tdd_advisor:      # Advises on TDD workflow for tasks
-      enabled: true        # TDD guidance for task workflow
-      priority: 36
-
     gh_issue_comments:     # Requires --comments flag for gh issue view
       enabled: true
       priority: 40
-
-    validate_plan_number:  # Validates plan number format (001-, 002-, etc)
-      enabled: true        # Enable for projects using CLAUDE/Plan/
-      priority: 38
 
     global_npm_advisor:    # Advises against global npm installs
       enabled: true
@@ -127,10 +115,6 @@ handlers:
     plan_workflow:         # Provides guidance when creating plans
       enabled: true        # Enable for projects using CLAUDE/Plan/
       priority: 44
-
-    plan_completion_advisor: # Advises on plan completion workflow
-      enabled: true        # Enable for projects using CLAUDE/Plan/
-      priority: 48
 
     validate_instruction_content: # Blocks ephemeral content in CLAUDE.md/README.md
       enabled: true        # Prevents implementation logs in instruction files
@@ -183,10 +167,6 @@ handlers:
 
   # PostToolUse handlers (run after tool execution)
   post_tool_use:
-    bash_error_detector:   # Detects bash errors and suggests corrections
-      enabled: true
-      priority: 10
-
     lint_on_edit:              # Language-aware lint validation after Write/Edit
       enabled: true            # Automatic lint validation after edits
       priority: 25
@@ -197,9 +177,10 @@ handlers:
 
   # SessionStart handlers (run when session starts)
   session_start:
-    yolo_container_detection:  # Detects YOLO development environments (Docker, etc)
+    git_upstream_checker:  # Detects when the branch is behind upstream (CI bot pushes cached data to main)
       enabled: true
-      priority: 10
+      options:
+        mode: agent-pull   # warn | agent-pull | auto-pull
 
     optimal_config_checker:  # Checks Claude Code env for optimal settings
       enabled: true
@@ -212,28 +193,6 @@ handlers:
     version_check:  # Checks if daemon is up-to-date with latest release
       enabled: true  # Notifies on new sessions if updates available (24h cache)
       priority: 56
-
-  # PreCompact handlers (run before conversation compaction)
-  pre_compact:
-    transcript_archiver:  # Archives transcripts before compaction
-      enabled: true       # Save conversation history
-      priority: 10
-
-  # SessionEnd handlers (run when session ends)
-  session_end:
-    cleanup:  # Session cleanup operations
-      enabled: true
-      priority: 10
-
-  # SubagentStop handlers (run when subagent completes)
-  subagent_stop:
-    subagent_completion_logger:  # Logs subagent completion
-      enabled: false  # Enable for debugging subagent workflows
-      priority: 10
-
-    remind_prompt_library:  # Reminds about prompt library after agent work
-      enabled: false        # Enable if using prompt library system
-      priority: 20
 
   # UserPromptSubmit handlers (run when user submits prompt)
   user_prompt_submit:
@@ -251,23 +210,10 @@ handlers:
       enabled: true
       priority: 10
 
-  notification:
-    notification_logger:  # Logs notifications
-      enabled: false      # Enable for debugging
-      priority: 10
-
   stop:
     auto_continue_stop:  # Auto-continues after stop events based on criteria
       enabled: true
       priority: 10
-
-    hedging_language_detector:  # Detects guessing language (should probably, IIRC, I believe, etc)
-      enabled: true
-      priority: 30
-
-    task_completion_checker:  # Checks for task completion
-      enabled: true            # Task completion checking
-      priority: 20
 
   # Status line handlers (format daemon-based status display)
   status_line:
@@ -287,7 +233,7 @@ handlers:
       enabled: true
       priority: 25
 
-    daemon_stats:   # Shows daemon uptime, memory, log level
+    daemon_stats:   # Developer health line (uptime, memory, log level); upgrade arrow lives in upgrade_notifier
       enabled: true
       priority: 30
 
@@ -299,9 +245,22 @@ handlers:
       enabled: true
       priority: 14
 
-    usage_tracking: # Tracks and displays usage statistics
-      enabled: true
-      priority: 60
+# Pseudo-events (synthetic events fired on a cadence of real ones)
+pseudo_events:
+  nitpick:
+    enabled: true
+    triggers:
+      - "pre_tool_use:1/5"    # Fire once every 5 PreToolUse events
+      - "stop:1/1"            # Fire on every Stop event
+    handlers:
+      dismissive_language:    # Flags deflection ("pre-existing", "out of scope") and premature halts
+        enabled: true
+      hedging_language:       # Flags guessing language ("should probably", "I believe")
+        enabled: true
+
+# ccy container workflow
+ccy:
+  deploy_supervisor: true     # Keep .claude/ccy/claude-supervise.py refreshed on every upgrade
 
 # Project-level handlers (custom handlers in .claude/hooks/handlers/)
 # Example:
