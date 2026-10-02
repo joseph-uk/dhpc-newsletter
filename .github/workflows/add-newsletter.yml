@@ -8,11 +8,11 @@ on:
         required: true
         type: string
       override_year:
-        description: 'LEAVE EMPTY unless correcting — override year (e.g. 2026)'
+        description: 'LEAVE EMPTY to use the month after the latest issue — override year (e.g. 2026)'
         required: false
         type: string
       override_month:
-        description: 'LEAVE EMPTY unless correcting — override month number (e.g. 04)'
+        description: 'LEAVE EMPTY to use the month after the latest issue — override month number (e.g. 04)'
         required: false
         type: string
 
@@ -25,33 +25,34 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Default: the month after the latest issue in issues.csv, so the result
+      # does not depend on which calendar day the workflow is run.
       - name: Calculate month and year
         id: calc
+        env:
+          OVERRIDE_YEAR: ${{ inputs.override_year }}
+          OVERRIDE_MONTH: ${{ inputs.override_month }}
         run: |
-          if [ -n "${{ inputs.override_year }}" ] && [ -n "${{ inputs.override_month }}" ]; then
-            YEAR="${{ inputs.override_year }}"
-            MONTH="${{ inputs.override_month }}"
+          if [ -n "$OVERRIDE_YEAR" ] && [ -n "$OVERRIDE_MONTH" ]; then
+            SLUG="${OVERRIDE_YEAR}-${OVERRIDE_MONTH}"
+            MONTH_NAMES="January February March April May June July August September October November December"
+            TITLE="$(echo "$MONTH_NAMES" | tr ' ' '\n' | sed -n "${OVERRIDE_MONTH#0}p") ${OVERRIDE_YEAR}"
+          elif [ -n "$OVERRIDE_YEAR" ] || [ -n "$OVERRIDE_MONTH" ]; then
+            echo "::error::Fill in BOTH override_year and override_month, or leave both empty"
+            exit 1
           else
-            CURRENT_MONTH=$(date +%-m)
-            CURRENT_YEAR=$(date +%Y)
-            if [ "$CURRENT_MONTH" -eq 12 ]; then
-              MONTH="01"
-              YEAR=$((CURRENT_YEAR + 1))
-            else
-              NEXT=$((CURRENT_MONTH + 1))
-              MONTH=$(printf '%02d' "$NEXT")
-              YEAR="$CURRENT_YEAR"
-            fi
+            NEXT=$(npx tsx scripts/next-issue.ts issues.csv)
+            SLUG=$(echo "$NEXT" | grep '^slug=' | cut -d= -f2-)
+            TITLE=$(echo "$NEXT" | grep '^title=' | cut -d= -f2-)
           fi
 
-          SLUG="${YEAR}-${MONTH}"
-
-          MONTH_NAMES="January February March April May June July August September October November December"
-          TITLE=$(echo "$MONTH_NAMES" | tr ' ' '\n' | sed -n "${MONTH#0}p")
-          TITLE="${TITLE} ${YEAR}"
-
-          echo "year=$YEAR" >> "$GITHUB_OUTPUT"
-          echo "month=$MONTH" >> "$GITHUB_OUTPUT"
           echo "slug=$SLUG" >> "$GITHUB_OUTPUT"
           echo "title=$TITLE" >> "$GITHUB_OUTPUT"
 

@@ -24,13 +24,13 @@ No terminal or code knowledge needed. Everything is done from GitHub in your bro
 
 3. Paste the Google Doc URL into the **first field**
 
-4. **Leave the other fields empty** — the month and year are calculated automatically (next month from today)
+4. **Leave the other fields empty** — the month and year are calculated automatically (the month after the latest issue already on the site, whatever day you run it)
 
 5. Click **"Run workflow"**
 
 The newsletter will be added as a **pre-release** (password-protected) so you can review it before making it public.
 
-> Only use the year/month override fields if you need to correct the auto-calculated date (e.g. adding a past issue). Normally leave them blank.
+> Only use the year/month override fields if you need to correct the auto-calculated date (e.g. adding a past issue, or skipping a month). Fill in both or neither. Normally leave them blank.
 
 ### Step 3: Publish it
 
