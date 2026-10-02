@@ -4,11 +4,22 @@ Scaffold new project-level handlers with automatic file generation and TDD struc
 
 ## Quick Start
 
+Scaffolding is a CLI verb, not a skill subcommand (Plan 00330 — agents
+scaffold through the verb). On a self-install the wrapper is
+`bin/hooks-daemon`:
+
 ```bash
-/hooks-daemon dev-handlers
+.claude/hooks-daemon/bin/hooks-daemon init-project-handlers
 ```
 
-This interactive command will:
+The interactive wrapper that used to sit behind the subcommand is still
+bundled for a human who prefers prompts:
+
+```bash
+bash .claude/skills/hooks-daemon/scripts/init-handlers.sh <the arguments you were given>
+```
+
+Either route will:
 
 1. Prompt for handler details (name, event type, priority)
 2. Create handler file in `.claude/project-handlers/{event_type}/`
@@ -23,11 +34,32 @@ This interactive command will:
 
 Location: `.claude/project-handlers/{event_type}/{handler_name}.py`
 
+Subclass the base named after the handler's EVENT, and return that event's
+result type. Every wired event has a base in
+`claude_code_hooks_daemon.core.handler_bases`, and each one narrows `handle()`
+to what its event can actually deliver:
+
+| Event                                     | Base                 | Return type      | Can express      |
+| ----------------------------------------- | -------------------- | ---------------- | ---------------- |
+| PreToolUse, PermissionRequest             | `<Event>HandlerBase` | `GatingResult`   | allow, deny, ask |
+| PostToolUse, Stop, SubagentStop           | `<Event>HandlerBase` | `BlockingResult` | allow, deny      |
+| SessionStart, StatusLine, everything else | `<Event>HandlerBase` | `AdvisoryResult` | allow only       |
+
+This matters because an event that cannot carry a refusal DROPS one silently —
+a deny returned from a `SessionStart` handler produces a valid response with the
+refusal removed, so the handler believes it blocked and nothing blocked. Using
+the event's base makes that a type error. Plain `Handler` still works and is not
+deprecated, but it cannot catch this for you.
+
+The example below is a `PreToolUse` handler; swap the base and result type to
+match the event you are writing for.
+
 ```python
-from claude_code_hooks_daemon.core import Handler, HookResult, Decision
+from claude_code_hooks_daemon.core import Decision, GatingResult
+from claude_code_hooks_daemon.core.handler_bases import PreToolUseHandlerBase
 from claude_code_hooks_daemon.constants import HandlerID, Priority
 
-class MyCustomHandler(Handler):
+class MyCustomHandler(PreToolUseHandlerBase):
     def __init__(self) -> None:
         super().__init__(
             handler_id=HandlerID.PROJECT_MY_CUSTOM,
@@ -39,9 +71,9 @@ class MyCustomHandler(Handler):
         # TODO: Implement matching logic
         return False
 
-    def handle(self, hook_input: dict) -> HookResult:
+    def handle(self, hook_input: dict) -> GatingResult:
         # TODO: Implement handler logic
-        return HookResult(decision=Decision.ALLOW)
+        return GatingResult(decision=Decision.ALLOW)
 
     def get_acceptance_tests(self) -> list:
         # TODO: Add acceptance tests
@@ -93,7 +125,7 @@ After scaffolding, follow Test-Driven Development:
 pytest .claude/project-handlers/{event_type}/test_{handler_name}.py -v
 ```
 
-Write tests that define expected behavior before implementing.
+Write tests that define expected behaviour before implementing.
 
 ### 2. GREEN Phase - Implement Handler
 
@@ -120,10 +152,10 @@ Improve code quality while keeping tests green:
 
 ```bash
 # Restart daemon to load handler
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 
 # Verify handler loaded
-$PYTHON -m claude_code_hooks_daemon.daemon.cli handlers | grep my_custom
+.claude/hooks-daemon/bin/hooks-daemon handlers | grep my_custom
 
 # Test with real hook events
 # (trigger the scenario your handler intercepts)
@@ -158,25 +190,30 @@ Choose the appropriate event type for your handler:
 
 ## Priority Guidelines
 
-Choose priority based on handler type:
+Choose priority based on handler type (bands defined by `PriorityRange` in
+the daemon's `constants/priority.py`, the source of truth):
 
+- **0-9**: Test fixtures, plus the Stop-family handlers that must run before a
+  terminal Stop catch-all (`cron_stop_enforcer`, `cron_subagent_stop_enforcer`,
+  `teammate_reap_advisor`) — a Stop handler placed after that catch-all never
+  fires on an ordinary stop
 - **10-20**: Safety handlers (destructive operations)
-- **25-35**: Code quality (linting, TDD enforcement)
+- **25-35**: Code quality (linting, QA suppression)
 - **36-55**: Workflow (planning, project-specific rules)
-- **56-60**: Advisory (non-blocking guidance)
-- **100+**: Logging/cleanup
+- **56-73**: Advisory (non-blocking guidance)
+- **100+**: Logging/cleanup (reserved; no built-in handlers ship here)
 
 ## Testing Project Handlers
 
 ```bash
 # Run project handler tests
-$PYTHON -m claude_code_hooks_daemon.daemon.cli test-project-handlers --verbose
+.claude/hooks-daemon/bin/hooks-daemon test-project-handlers --verbose
 
 # Validate handlers load correctly
-$PYTHON -m claude_code_hooks_daemon.daemon.cli validate-project-handlers
+.claude/hooks-daemon/bin/hooks-daemon validate-project-handlers
 
 # Generate acceptance test playbook (includes project handlers)
-$PYTHON -m claude_code_hooks_daemon.daemon.cli generate-playbook > /tmp/playbook.md
+.claude/hooks-daemon/bin/hooks-daemon generate-playbook > untracked/scratch/playbook.md
 ```
 
 ## Examples
@@ -191,9 +228,9 @@ See example project handlers:
 
 For comprehensive handler development guide:
 
-- See: `CLAUDE/HANDLER_DEVELOPMENT.md`
-- See: `CLAUDE/PROJECT_HANDLERS.md`
-- See: `CLAUDE/DEBUGGING_HOOKS.md` (event flow debugging)
+- See: the daemon clone's `CLAUDE/HANDLER_DEVELOPMENT.md`
+- See: the daemon clone's `CLAUDE/PROJECT_HANDLERS.md`
+- See: the daemon clone's `CLAUDE/DEBUGGING_HOOKS.md` (event flow debugging)
 
 ## Next Steps After Scaffolding
 

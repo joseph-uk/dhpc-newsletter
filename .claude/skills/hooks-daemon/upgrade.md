@@ -6,10 +6,12 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
 
 1. **Run the upgrade**:
 
-   ```bash
-   /hooks-daemon upgrade           # latest
-   /hooks-daemon upgrade 3.14.0    # specific version
-   /hooks-daemon upgrade --force   # reinstall current
+   ```claude-code
+   /hooks-daemon upgrade                              # latest
+   /hooks-daemon upgrade 3.14.0                       # specific version
+   /hooks-daemon upgrade --force                      # reinstall current
+   /hooks-daemon upgrade --skip-config-optimisation    # opt out of step 8
+   /hooks-daemon optimise                              # step 8 on its own
    ```
 
 2. **Parse the metadata block** emitted on stdout between the
@@ -21,7 +23,7 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
 3. **Verify daemon RUNNING**:
 
    ```bash
-   $PYTHON -m claude_code_hooks_daemon.daemon.cli status
+   .claude/hooks-daemon/bin/hooks-daemon status
    ```
 
 4. **Reconcile project docs with truth-changes** (skip on `--force`
@@ -30,12 +32,32 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
    Load the truth-changes for the range you just crossed:
 
    ```bash
-   $PYTHON -m claude_code_hooks_daemon.daemon.cli check-truth-changes \
+   .claude/hooks-daemon/bin/hooks-daemon check-truth-changes \
        --from ${from_version} --to ${to_version}
    ```
 
    Exit code `0` means nothing to do — skip to the next step. Exit code `1`
-   means there are `was → now` entries to reconcile. For **each** entry:
+   means there is reconciliation work, and what you receive is a **bounded
+   summary**, never the entries: counts, the path of the full report
+   (`untracked/truth-changes/v<from>-to-v<to>/REPORT.md`) and one line per
+   **chunk file** (`chunk-NN-<topic>.md` beside it). The full report is
+   deliberately not printed — an unbounded one is delivered head-and-tail
+   with the middle silently dropped, and it grows with every release crossed.
+   Do NOT read the full report into your own context; delegate the chunks:
+
+   - **Dispatch one subagent per chunk file, in parallel.** A chunk is one
+     topic, and chunks are disjoint in the documents they touch, so parallel
+     subagents cannot race for a file. A chunk marked `SEQUENTIAL` (entries
+     with no topic) runs alone, AFTER every other chunk has returned.
+   - The subagent's brief is the chunk file: tell it to read that path and
+     follow it. The file carries the rules below and its own entries only.
+   - **Each subagent returns ONLY what it changed** — the files it edited,
+     one line each, plus which entries no doc asserted. Never the entries it
+     read: you hold paths and counts, not the report.
+   - A small range (a few chunks of one or two truths each) you may reconcile
+     yourself from the chunk files; the rules are the same.
+
+   The rules every chunk carries, for **each** entry:
 
    - **Semantically** search the PROJECT'S OWN docs for the `was` statement —
      `CLAUDE/`, `docs/`, `README*`, `AGENTS*`, and any project instruction
@@ -50,10 +72,15 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
      before removing the whole section.
    - If a doc does not assert the `was` truth, there is nothing to do for it
      (the step is idempotent — re-running is a no-op).
+   - An entry marked `revised in vX, vY` is the CURRENT form of a truth that
+     also changed in those earlier releases; their entries are deliberately
+     not shown. Reconcile any earlier form of the statement to the same `now`.
 
    Stage and commit any project-doc edits **separately** from the daemon
    upgrade commit below (they touch project files, not daemon-owned paths). You
-   can re-run `check-truth-changes` any time to re-reconcile.
+   can re-run `check-truth-changes` any time to re-reconcile; `--full` prints
+   the whole report inline for a human reader, and `--report-dir` moves the
+   files.
 
 5. **Surface newly-available / recommended config options** (skip on `--force`
    reinstall, where `from_version == to_version`). Some releases add opt-in
@@ -61,25 +88,39 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
    recommended for the range you crossed so a new feature never ships dormant:
 
    ```bash
-   $PYTHON -m claude_code_hooks_daemon.daemon.cli check-config-migrations \
+   .claude/hooks-daemon/bin/hooks-daemon check-config-migrations \
        --from ${from_version} --to ${to_version}
    ```
 
    Exit code `0` means nothing to surface — skip to the next step. Exit code `1`
-   means there are suggestions. Read them:
+   means there are suggestions. What you receive is a **bounded summary**: the
+   actionable lines inline, and the path of the full advisory
+   (`untracked/config-changes/v<from>-to-v<to>/ADVISORY.md`) for every
+   description, note and example. Read the summary:
 
    - Anything under **🆕 Recommended — enable these** is a feature the daemon
-     recommends turning on. The output shows the key, the recommended value, and
+     recommends turning on. The line shows the key, the recommended value, and
      your current value. To adopt one, set that key/value in
      `.claude/hooks-daemon.yaml`.
-   - If a recommendation carries a migration **Note** (e.g. "migrate existing
-     memory into tracked docs first"), perform that migration **before**
-     enabling — follow any referenced post-upgrade task.
-   - Items under **💡 New Options Available** are informational; adopt if useful.
+   - A line marked "has a migration Note" (e.g. "migrate existing memory into
+     tracked docs first") needs that migration performed **before** enabling —
+     read the Note for that key in the full advisory and follow any referenced
+     post-upgrade task.
+   - **💡 New Options Available** is a count; the options are informational and
+     listed with examples in the full advisory — adopt if useful. `--full`
+     prints the whole advisory inline instead.
+   - Anything under **⚠️ Stale handler keys** is a `handlers.<event>.<key>`
+     entry the installed daemon does not register for that event: it names
+     the event or pseudo-event the handler lives under now, or says the
+     handler no longer exists. Move or delete the key as the line says
+     (`audit-handler-keys` re-runs this check on its own, any time).
 
-   This is advisory — enabling is your choice; the daemon never edits your config
-   for you. Stage and commit any `.claude/hooks-daemon.yaml` edits separately
-   from the daemon upgrade commit below.
+   This is advisory — enabling is your choice; the daemon never edits your
+   config for you, except that the upgrade merge moves a key whose handler
+   RELOCATED to a pseudo-event (the two nitpick detectors) to its new home,
+   keeping `enabled`/`priority`, and lists the move in `config_diff_summary`.
+   Stage and commit any `.claude/hooks-daemon.yaml` edits separately from the
+   daemon upgrade commit below.
 
 6. **Stage daemon-owned paths ONLY** with explicit `git add` — other
    working-tree changes are not part of this commit. Never `git add .`:
@@ -110,4 +151,25 @@ Upgrade the Claude Code Hooks Daemon and commit the result atomically.
    ```
 
 If the daemon is not RUNNING after upgrade, do NOT commit — investigate
-first (`$PYTHON -m claude_code_hooks_daemon.daemon.cli logs`).
+first (`.claude/hooks-daemon/bin/hooks-daemon logs`).
+
+8. **Run the config-optimisation review** (Plan 00308) — mandatory unless
+   `--skip-config-optimisation` was passed to this upgrade. Step 5 above
+   surfaces recommended config KEYS via `check-config-migrations`; this step
+   is the full per-handler review that decides which ones to enable, applies
+   them on your confirmation, and records the run so the
+   `config_optimisation_reminder` SessionStart advisory does not re-nag next
+   session:
+
+   ```claude-code
+   /hooks-daemon optimise
+   ```
+
+   Run it in THIS session, immediately after the commit in step 7 above (it
+   may itself edit `.claude/hooks-daemon.yaml` and restart the daemon — that
+   is a separate, later commit, same discipline as steps 4-5's
+   project-doc/config edits). The upgrade is not finished until it has run:
+   do not defer it to a later session, and do not report it back as an
+   optional follow-up. If `--skip-config-optimisation` was passed, skip this
+   step and tell the user to run `/hooks-daemon optimise` themselves when
+   ready.

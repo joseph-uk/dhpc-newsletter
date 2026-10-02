@@ -17,7 +17,7 @@ Error: Failed to start daemon
 ```bash
 # Remove stale socket
 rm .claude/hooks-daemon/untracked/daemon-*.sock
-$PYTHON -m claude_code_hooks_daemon.daemon.cli start
+.claude/hooks-daemon/bin/hooks-daemon start
 ```
 
 **2. Permission denied**
@@ -31,14 +31,15 @@ ls -la .claude/hooks-daemon/untracked/
 **3. Python environment issues**
 
 ```bash
-# Verify Python version (3.11+ required)
-$PYTHON --version
+# Verify the interpreter and venv the daemon actually resolves
+# (reports Python version, venv path and health in one go)
+.claude/hooks-daemon/bin/hooks-daemon health
 
-# Verify venv exists
-ls -la .claude/hooks-daemon/untracked/venv/
+# List every venv the daemon knows about
+.claude/hooks-daemon/bin/hooks-daemon list-venvs
 
 # Repair venv
-$PYTHON -m claude_code_hooks_daemon.daemon.cli repair
+.claude/hooks-daemon/bin/hooks-daemon repair
 ```
 
 **4. Port already in use**
@@ -47,8 +48,11 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli repair
 # Check for existing daemon processes
 ps aux | grep hooks-daemon
 
-# Kill stale processes
-pkill -f hooks-daemon
+# Stop THIS project's daemon. Use the CLI, not pkill: it targets this
+# project's PID file only. `pkill -f hooks-daemon` matches every daemon
+# on the host, so in a shared PID namespace (a container and its host, or
+# two containers sharing a bind mount) it kills OTHER projects' daemons too.
+.claude/hooks-daemon/bin/hooks-daemon stop
 ```
 
 ## DEGRADED MODE
@@ -78,7 +82,7 @@ def get_acceptance_tests(self) -> list[AcceptanceTest]:
     return []  # Or add actual tests
 ```
 
-See: `CLAUDE/HANDLER_DEVELOPMENT.md` for details on v2.13.0 changes.
+See: the daemon clone's `CLAUDE/HANDLER_DEVELOPMENT.md` for details on v2.13.0 changes.
 
 **2. Import Error**
 
@@ -91,11 +95,14 @@ ModuleNotFoundError: No module named 'my_dependency'
 **Solution:**
 
 ```bash
-# Install missing dependency in daemon venv
-.claude/hooks-daemon/untracked/venv/bin/pip install my_dependency
+# Install a missing dependency into the daemon venv. The venv is
+# fingerprint-keyed, so resolve its interpreter rather than guessing a path.
+source .claude/hooks-daemon/scripts/lib/resolve_venv.sh
+PY="$(resolve_venv_python "$PWD/.claude/hooks-daemon")"
+"$PY" -m pip install my_dependency
 
 # Restart daemon
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 ```
 
 **3. Handler Configuration Error**
@@ -136,13 +143,18 @@ curl: (404) Not Found
 **Solution:**
 Use the skill command or download-then-run:
 
-```bash
-# Preferred:
-/hooks-daemon upgrade
+Preferred — in the Claude Code chat:
 
-# Manual:
-curl -sSL https://raw.githubusercontent.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon/main/scripts/upgrade.sh -o /tmp/hooks-daemon-upgrade.sh
-bash /tmp/hooks-daemon-upgrade.sh
+```claude-code
+/hooks-daemon upgrade
+```
+
+Manual — from a terminal:
+
+```bash
+mkdir -p untracked/scratch
+curl -sSL https://raw.githubusercontent.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon/main/scripts/upgrade.sh -o untracked/scratch/hooks-daemon-upgrade.sh
+bash untracked/scratch/hooks-daemon-upgrade.sh
 ```
 
 ### Upgrade Hangs
@@ -151,12 +163,20 @@ bash /tmp/hooks-daemon-upgrade.sh
 
 **Solution:**
 
+From a terminal:
+
 ```bash
 # Check daemon logs
-$PYTHON -m claude_code_hooks_daemon.daemon.cli logs
+.claude/hooks-daemon/bin/hooks-daemon logs
 
-# If stuck, kill and retry
-pkill -f hooks-daemon
+# If stuck, stop THIS project's daemon (never `pkill -f hooks-daemon`
+# — that matches every daemon on the host, not just this project's)
+.claude/hooks-daemon/bin/hooks-daemon stop
+```
+
+Then retry the upgrade in the Claude Code chat:
+
+```claude-code
 /hooks-daemon upgrade
 ```
 
@@ -171,12 +191,19 @@ The upgrade script auto-rollsback, but if needed manually:
 # Restore backed-up config
 cp .claude/hooks-daemon.yaml.backup .claude/hooks-daemon.yaml
 
-# Checkout previous version
-cd .claude/hooks-daemon
-git checkout v2.12.0  # Previous working version
+# Roll back to the previous version. Run upgrade_version.sh rather than a bare
+# `git checkout`: it rebuilds the venv and reinstalls the package for the target
+# version. A checkout alone moves the source but leaves the venv holding the
+# NEW version's dependencies.
+#
+# Use `git -C` and absolute paths — never `cd` into .claude/hooks-daemon/
+# (the daemon_location_guard handler blocks it, and daemon commands are
+# designed to run from the project root).
+bash .claude/hooks-daemon/scripts/upgrade_version.sh \
+  "$PWD" "$PWD/.claude/hooks-daemon" "v2.12.0"   # previous working version
 
 # Restart
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 ```
 
 ## Handler Not Triggering
@@ -190,7 +217,7 @@ Handler exists but never fires
 **1. Verify handler loaded:**
 
 ```bash
-$PYTHON -m claude_code_hooks_daemon.daemon.cli handlers | grep my_handler
+.claude/hooks-daemon/bin/hooks-daemon handlers | grep my_handler
 ```
 
 If not listed, check:
@@ -204,10 +231,10 @@ If not listed, check:
 ```bash
 # Enable debug logging
 export HOOKS_DAEMON_LOG_LEVEL=DEBUG
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 
 # Check logs
-$PYTHON -m claude_code_hooks_daemon.daemon.cli logs | grep my_handler
+.claude/hooks-daemon/bin/hooks-daemon logs | grep my_handler
 ```
 
 **3. Debug hook event flow:**
@@ -219,10 +246,10 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli logs | grep my_handler
 ./scripts/debug_hooks.sh stop
 
 # Analyze captured events
-cat /tmp/hook_debug_*.log | grep -A10 "event_type"
+cat untracked/scratch/hook_debug_*.log | grep -A10 "event_type"
 ```
 
-See: `CLAUDE/DEBUGGING_HOOKS.md` for complete debugging workflow.
+See: the daemon clone's `CLAUDE/DEBUGGING_HOOKS.md` for the complete debugging workflow.
 
 ## Configuration Issues
 
@@ -237,8 +264,8 @@ yaml.scanner.ScannerError: mapping values are not allowed here
 **Solution:**
 
 ```bash
-# Validate YAML syntax
-$PYTHON -c "import yaml; yaml.safe_load(open('.claude/hooks-daemon.yaml'))"
+# Validate config syntax AND schema (stricter than a bare YAML parse)
+.claude/hooks-daemon/bin/hooks-daemon config-validate
 
 # Compare with example
 diff .claude/hooks-daemon.yaml .claude/hooks-daemon.yaml.example
@@ -298,10 +325,10 @@ export HOOKS_DAEMON_LOG_LEVEL=DEBUG
 
 ```bash
 # Check daemon stats
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status
+.claude/hooks-daemon/bin/hooks-daemon status
 
 # Restart daemon to clear caches
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 
 # If persistent, check for handler memory leaks
 ```
@@ -320,10 +347,10 @@ Error: Socket file not found: .claude/hooks-daemon/untracked/daemon-*.sock
 
 ```bash
 # Check daemon is running
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status
+.claude/hooks-daemon/bin/hooks-daemon status
 
 # If stopped, start it
-$PYTHON -m claude_code_hooks_daemon.daemon.cli start
+.claude/hooks-daemon/bin/hooks-daemon start
 ```
 
 ### Permission Denied on Socket
@@ -341,19 +368,28 @@ PermissionError: [Errno 13] Permission denied: '/path/to/daemon.sock'
 chmod 600 .claude/hooks-daemon/untracked/daemon-*.sock
 
 # Restart daemon
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 ```
 
 ## Getting Help
 
 ### Generate Diagnostic Report
 
+The `bug-report` command collects everything below in one go — prefer it:
+
 ```bash
-# Comprehensive diagnostics
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status --verbose > diagnostic-report.txt
+.claude/hooks-daemon/bin/hooks-daemon bug-report "short description of the problem"
+# Writes to untracked/bug-reports/ by default; use -o - for stdout.
+```
+
+To assemble a report by hand instead:
+
+```bash
+# Comprehensive diagnostics (health is the detailed view; status is a summary)
+.claude/hooks-daemon/bin/hooks-daemon health > diagnostic-report.txt
 
 # Include daemon logs
-$PYTHON -m claude_code_hooks_daemon.daemon.cli logs >> diagnostic-report.txt
+.claude/hooks-daemon/bin/hooks-daemon logs >> diagnostic-report.txt
 
 # Include configuration
 cat .claude/hooks-daemon.yaml >> diagnostic-report.txt
@@ -363,8 +399,8 @@ cat .claude/hooks-daemon.yaml >> diagnostic-report.txt
 
 When reporting issues, include:
 
-1. Daemon version: `$PYTHON -m claude_code_hooks_daemon.daemon.cli --version`
-2. Python version: `$PYTHON --version`
+1. Daemon version: `git -C .claude/hooks-daemon describe --tags` (there is no `--version` flag)
+2. Resolved interpreter: `.claude/hooks-daemon/bin/hooks-daemon list-venvs`
 3. OS: `uname -a`
 4. Diagnostic report (above)
 5. Steps to reproduce
@@ -377,19 +413,19 @@ When reporting issues, include:
 
 ```bash
 # Status
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status
+.claude/hooks-daemon/bin/hooks-daemon status
 
 # Restart
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 
 # Logs
-$PYTHON -m claude_code_hooks_daemon.daemon.cli logs
+.claude/hooks-daemon/bin/hooks-daemon logs
 
 # Repair
-$PYTHON -m claude_code_hooks_daemon.daemon.cli repair
+.claude/hooks-daemon/bin/hooks-daemon repair
 
-# Validate config
-$PYTHON -m claude_code_hooks_daemon.daemon.cli validate-config
+# Validate config (config-validate takes the config path)
+.claude/hooks-daemon/bin/hooks-daemon config-validate .claude/hooks-daemon.yaml
 ```
 
 ### Log Locations

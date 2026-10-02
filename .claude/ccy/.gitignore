@@ -4,3 +4,6 @@
 !.gitignore
 !Dockerfile
 !allowed-hostnames
+!mounts
+!ccy.env
+!claude-supervise.py

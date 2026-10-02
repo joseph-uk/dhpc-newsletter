@@ -4,7 +4,7 @@ Check the status and health of your Claude Code Hooks Daemon.
 
 ## Quick Health Check
 
-```bash
+```claude-code
 /hooks-daemon health
 ```
 
@@ -18,9 +18,12 @@ Displays:
 
 ## View Daemon Logs
 
+Logs are a CLI verb, not a skill subcommand (Plan 00330 — nobody types it as
+one). On a self-install the wrapper is `bin/hooks-daemon`:
+
 ```bash
-/hooks-daemon logs           # Last 50 lines
-/hooks-daemon logs --follow  # Stream in real-time
+.claude/hooks-daemon/bin/hooks-daemon logs           # Last 50 lines
+.claude/hooks-daemon/bin/hooks-daemon logs --follow  # Stream in real-time
 ```
 
 Logs show:
@@ -58,7 +61,7 @@ Failed Handlers:
   - custom_handler: Missing required abstract method get_acceptance_tests()
   - another_handler: Import error: ModuleNotFoundError
 
-See logs for details: /hooks-daemon logs
+See logs for details: .claude/hooks-daemon/bin/hooks-daemon logs
 ```
 
 ## Common Health Issues
@@ -72,7 +75,7 @@ See logs for details: /hooks-daemon logs
 **Fix:**
 
 ```bash
-$PYTHON -m claude_code_hooks_daemon.daemon.cli restart
+.claude/hooks-daemon/bin/hooks-daemon restart
 ```
 
 ### DEGRADED MODE
@@ -89,9 +92,23 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli restart
 
 **Fix:**
 
-1. Check logs: `/hooks-daemon logs`
+1. Check logs: `.claude/hooks-daemon/bin/hooks-daemon logs`
 2. Fix handler issues
 3. Restart daemon
+
+### Handler Options Not Applied
+
+```
+Handler options:
+  🚨 DEGRADED — 1 handler(s) running on defaults:
+  - PreToolUse.destructive_git: RuntimeError: ...
+```
+
+The daemon could not collect that handler's configured options, so the
+handler runs on its defaults and `health` exits non-zero. Each session also
+opens with a `HANDLER OPTIONS NOT APPLIED` advisory naming it. This is a daemon
+defect rather than a config mistake. Report it with the traceback from
+`.claude/hooks-daemon/bin/hooks-daemon logs`.
 
 ### Configuration Errors
 
@@ -111,14 +128,17 @@ $PYTHON -m claude_code_hooks_daemon.daemon.cli restart
 For detailed diagnostics when reporting issues:
 
 ```bash
-# Generate diagnostic report
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status --verbose
+# Generate diagnostic report (health is the detailed view; status is a summary)
+.claude/hooks-daemon/bin/hooks-daemon health
 
 # Check handler registry
-$PYTHON -m claude_code_hooks_daemon.daemon.cli handlers
+.claude/hooks-daemon/bin/hooks-daemon handlers
 
-# Validate configuration
-$PYTHON -m claude_code_hooks_daemon.daemon.cli validate-config
+# Validate configuration (defaults to the project's config; validate-config also works)
+.claude/hooks-daemon/bin/hooks-daemon config-validate
+
+# Verbose environment & configuration audit (see check.md)
+.claude/hooks-daemon/bin/hooks-daemon check
 ```
 
 ## Troubleshooting

@@ -1,5 +1,7 @@
 # Claude Code Hooks Daemon
 .claude/hooks-daemon/
+.claude/hooks-daemon-backups/
+.claude/settings.json.bak-*
 
 # Claude Code session artifacts
 .claude/worktrees/

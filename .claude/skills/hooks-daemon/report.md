@@ -29,19 +29,19 @@ Gather ALL of the following. Save raw output to shell variables or temp files fo
 #### 2a. Daemon status and health
 
 ```bash
-$PYTHON -m claude_code_hooks_daemon.daemon.cli status 2>&1
+.claude/hooks-daemon/bin/hooks-daemon status 2>&1
 ```
 
 #### 2b. Daemon logs (last 200 lines)
 
 ```bash
-$PYTHON -m claude_code_hooks_daemon.daemon.cli logs 2>&1
+.claude/hooks-daemon/bin/hooks-daemon logs 2>&1
 ```
 
 #### 2c. Loaded handlers
 
 ```bash
-$PYTHON -m claude_code_hooks_daemon.daemon.cli handlers 2>&1
+.claude/hooks-daemon/bin/hooks-daemon handlers 2>&1
 ```
 
 #### 2d. Configuration file
@@ -50,7 +50,13 @@ Read `.claude/hooks-daemon.yaml` — include the full contents in the report.
 
 #### 2e. Recent transcript data
 
-Look for transcript archives in `untracked/transcripts/` or `.claude/transcripts/`. Read the most recent 1-3 files if they exist. These contain conversation history that may reveal what Claude was doing when the issue occurred.
+The session transcript is a **Claude Code** artefact, not a daemon one. It lives at `~/.claude/projects/<project-slug>/<session-id>.jsonl`, and compaction never deletes it.
+
+**Do NOT read one whole.** A transcript is a full session and can be tens of megabytes. It is JSONL — one entry per line — so sample it instead: `grep` it, or `tail -n 200 <file>` / `head -n 200 <file>` (a path ARGUMENT, so no pipe and no truncation). Quote only the entries around the time of the issue.
+
+**Redact before pasting into a report.** These files are NOT redacted by anything — a secret pasted into the conversation is in there verbatim. Check the content you are about to quote against the project's secret word list if it has one.
+
+(Older installs may also have `untracked/transcripts/transcript_*.json*`, written by the retired `transcript_archiver` handler. Those are redacted copies of the same transcripts and are safe to delete.)
 
 #### 2f. Git context
 
@@ -63,7 +69,7 @@ git status
 
 ```bash
 echo "Hostname: $HOSTNAME"
-echo "Python: $($PYTHON --version 2>&1)"
+.claude/hooks-daemon/bin/hooks-daemon health   # resolved interpreter + version
 echo "OS: $(uname -a)"
 echo "Container: ${YOLO_CONTAINER:-not detected}"
 ```
@@ -193,12 +199,23 @@ After writing the report, tell the user:
 ```
 Report saved to: ./untracked/hooks-daemon-{slug}.md
 
-To share this report with the hooks daemon maintainers:
+**This report is written for YOU, and is not safe to publish as-is.** It is
+assembled from your project's own config, logs and session transcripts, none of
+which is redacted — see the transcript warning above. The upstream repository is
+PUBLIC, and a public issue cannot be retracted by any later edit or deletion.
 
-1. Open a GitHub issue at: https://github.com/anthropics/claude-code-hooks-daemon/issues
-2. Title: "Bug Report: {problem summary}"
-3. Paste the contents of the report file, or attach it
-4. Add any additional context from your own observations
+To share it with the hooks daemon maintainers:
+
+1. Read the report and remove anything belonging to your project — absolute
+   paths carrying a username, your git remote, branch names, internal service
+   or client names, anything from an `.env`.
+2. Reduce the reproduction to the smallest SYNTHETIC case that still shows the
+   behaviour: invented paths under `untracked/scratch/`, never a capture from
+   your own tree. If it cannot be reproduced that way, say so in the issue
+   rather than pasting the original.
+3. Open an issue at: https://github.com/Edmonds-Commerce-Limited/claude-code-hooks-daemon/issues
+4. Title: "Bug Report: {problem summary}"
+5. Paste only the redacted, minimised report — never the raw file.
 
 Alternatively, share the file directly with whoever maintains the hooks daemon in your organisation.
 ```
