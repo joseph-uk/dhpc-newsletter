@@ -27,8 +27,6 @@
 
 - [ ] <!-- criterion that must be met -->
 
-## Notes & Updates
-
-### {{CREATED_DATE}}
+## Delivery & Milestones
 
 - Plan scaffolded.

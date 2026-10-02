@@ -16,9 +16,9 @@ CLAUDE/Plan/
 
 ### 1. Create
 
-- Create folder: `CLAUDE/Plan/NNNNN-description/`
-- Write `PLAN.md` with tasks, goals, and status
-- Add entry to `README.md` under **Active Plans**
+- Run `CLAUDE/Plan/mkplan.bash "description"` — it allocates the next number and scaffolds `CLAUDE/Plan/NNNNN-description/` with `PLAN.md` and `JOURNAL/`
+- Fill in `PLAN.md` with tasks, goals, and status
+- Add entry to `README.md` under **Active Plans** in the same commit that creates the folder
 
 ### 2. Execute
 
