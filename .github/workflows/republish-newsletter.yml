@@ -13,14 +13,15 @@ on:
         required: false
         type: string
 
-# Serialise runs so concurrent republishes cannot race on the data/ commit + push.
-concurrency:
-  group: republish-newsletter
-  cancel-in-progress: false
-
 jobs:
   republish:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Queue, never cancel: serialises with add/publish so concurrent runs cannot
+    # race on the data/ and issues.csv commit + push.
+    concurrency:
+      group: newsletter-data
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:

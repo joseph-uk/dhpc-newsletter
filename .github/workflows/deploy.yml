@@ -6,6 +6,13 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Every run rebuilds from the head of main, so the newest run supersedes any
+    # older one: cancel it rather than race it for the data/ push and gh-pages.
+    # Job-level, so callers via workflow_call share the same group.
+    concurrency:
+      group: pages-deploy
+      cancel-in-progress: true
     permissions:
       contents: write
     steps:

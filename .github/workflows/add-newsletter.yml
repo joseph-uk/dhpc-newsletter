@@ -19,6 +19,11 @@ on:
 jobs:
   add-newsletter:
     runs-on: ubuntu-latest
+    timeout-minutes: 10
+    # Queue, never cancel: this job edits issues.csv and pushes the edit.
+    concurrency:
+      group: newsletter-data
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -90,6 +95,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add issues.csv
           git commit -m "Add newsletter: ${{ steps.calc.outputs.title }} (${{ steps.calc.outputs.slug }}) [skip ci]"
+          git pull --rebase
           git push
 
   deploy:
