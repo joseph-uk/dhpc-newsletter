@@ -7,3 +7,5 @@
 !mounts
 !ccy.env
 !claude-supervise.py
+!ccy.env.local.dist
+!claude-supervise

@@ -11,13 +11,31 @@ daemon:
     enabled: true              # Validate hook inputs (recommended)
     strict_mode: true          # Fail-closed: return errors on validation failures
     log_validation_errors: true
+  expected_version: "3.71.0"  # daemon version this project expects; `provision.sh` installs exactly this
 
 # Built-in handler configuration
 # Handlers run in priority order (lower number = earlier execution)
 # Priority ranges: 5=test, 10-20=safety, 25-45=workflow, 50-60=tool usage
 handlers:
+  pre_compact:
+    compaction_signal:
+      enabled: true
   # PreToolUse handlers (run before every tool call)
   pre_tool_use:
+    flaggable_content_channel_guard:
+      enabled: true
+    flaggable_work_advisor:
+      enabled: true
+    github_issue_assignment_guard:
+      enabled: true
+    quarantine_artefact_read_guard:
+      enabled: true
+    review_round_advisor:
+      enabled: true
+    subagent_full_qa_blocker:
+      enabled: true
+    write_protected_paths:
+      enabled: true
     # SAFETY HANDLERS (Priority 10-20) - HIGHLY RECOMMENDED
     destructive_git:       # Blocks git reset --hard, git clean -f, etc
       enabled: true
@@ -167,6 +185,8 @@ handlers:
 
   # PostToolUse handlers (run after tool execution)
   post_tool_use:
+    goal_injection:
+      enabled: true
     lint_on_edit:              # Language-aware lint validation after Write/Edit
       enabled: true            # Automatic lint validation after edits
       priority: 25
@@ -177,6 +197,16 @@ handlers:
 
   # SessionStart handlers (run when session starts)
   session_start:
+    model_fallback_detector:
+      enabled: true
+    routine_qa_sweep:
+      enabled: true
+    session_actions_directive:
+      enabled: true
+    skill_opportunity_detector:
+      enabled: true
+    tool_disable_advisor:
+      enabled: true
     git_upstream_checker:  # Detects when the branch is behind upstream (CI bot pushes cached data to main)
       enabled: true
       options:
@@ -196,6 +226,8 @@ handlers:
 
   # UserPromptSubmit handlers (run when user submits prompt)
   user_prompt_submit:
+    idle_housekeeping_advisory:
+      enabled: true
     git_context_injector:  # Injects git context into user prompts
       enabled: true
       priority: 10
@@ -217,6 +249,10 @@ handlers:
 
   # Status line handlers (format daemon-based status display)
   status_line:
+    context_sidecar:
+      enabled: true
+    host_hostname:
+      enabled: true
     model_context:  # Shows model name and color-coded context percentage
       enabled: true
       priority: 10

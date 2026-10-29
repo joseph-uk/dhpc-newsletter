@@ -315,5 +315,6 @@
       "Edit(//var/tmp/**)",
       "Edit(//dev/shm/**)"
     ]
-  }
+  },
+  "autoCompactWindow": 480000
 }

@@ -13,6 +13,7 @@
 # Usage:
 #   <plan-dir>/mkplan.bash "descriptive-kebab-name"
 #   <plan-dir>/mkplan.bash --journal <plan-number> <category> <body-file> [--ref R] [--title T]
+#   <plan-dir>/mkplan.bash --resolve-conflict <day-file>
 #
 # Deployment contract (READ THIS):
 #   The script scaffolds plans in ITS OWN directory, resolved from BASH_SOURCE
@@ -35,14 +36,18 @@
 #   1. Requires exactly one non-empty argument: the plan name.
 #   2. Normalises + validates the name into a safe kebab slug that starts
 #      with a letter (matches the daemon's NNNNN-[a-zA-Z] plan pattern).
-#   3. Takes an exclusive, portable lock on the plan dir so concurrent runs
-#      (two agents, or an agent + a human) cannot assign the same number.
+#   3. Takes an exclusive, portable lock in the repository's COMMON git dir
+#      (shared by every linked worktree, like the counter it guards) so
+#      concurrent runs (two agents, or an agent + a human, in any checkout)
+#      cannot assign the same number. If the common git dir cannot be
+#      resolved to an existing absolute path, the lock falls back to the
+#      plan dir, which serialises runners of that one checkout only.
 #   4. Resolves the next plan number from the git-anchored counter
 #      (`hooksdaemon.latestPlanNumber`), bootstrapping from a filesystem
 #      scan when the counter is unset — exactly like the hooks daemon does.
 #      A brand-new project (no counter, no plans) starts at 00001.
-#   5. Sanity-checks the number against the folders on disk and refuses to
-#      proceed on drift or collision.
+#   5. Sanity-checks the number against the folders on disk: advances a lagging
+#      counter to the highest plan on disk, and refuses to proceed on collision.
 #   6. Creates <plan-dir>/NNNNN-name/ and scaffolds PLAN.md.
 #   7. Advances the git counter so the next plan reads counter + 1.
 #
@@ -56,6 +61,11 @@
 # the caller never supplies (and cannot mis-estimate) a timestamp. It does
 # NOT take the lock above and NEVER touches the counter — the two operations
 # have different lifecycles and must stay provably separate (D6a).
+#
+# --resolve-conflict <day-file> (ledger 00474 N345): resolves a merge conflict
+# in a JOURNAL day-file to the union of both sides' entries (time order, each
+# entry once) and stages it. The one sanctioned route: a hand edit is denied,
+# and `git checkout --ours/--theirs` discards the other side's entries.
 
 set -euo pipefail
 
@@ -63,12 +73,16 @@ readonly COUNTER_KEY="hooksdaemon.latestPlanNumber"
 readonly NUMBER_WIDTH=5
 readonly MAX_NAME_LENGTH=80
 readonly LOCK_BASENAME=".mkplan.lock"
+# Lock name inside the common git dir; distinct from any file git keeps there.
+readonly COMMON_DIR_LOCK_BASENAME="hooksdaemon-mkplan.lock"
 readonly LOCK_MAX_ATTEMPTS=100
 readonly LOCK_RETRY_SECONDS=0.1
 
 # Journal assets (Plan 00163), also used by --journal (Plan 00427).
 readonly JOURNAL_DIR_BASENAME="JOURNAL"
 readonly JOURNAL_TEMPLATE_BASENAME="_JOURNAL_TEMPLATE_.md"
+# A day-file's own name, as --resolve-conflict (ledger 00474 N345) requires.
+readonly JOURNAL_DAYFILE_NAME_PATTERN='^[0-9]{1,5}-Journal-[0-9]{2}-[0-9]{2}-[0-9]{2}\.md$'
 
 # The grammar's legal category set (Plan 00427 D5), mirrored from
 # _JOURNAL_TEMPLATE_.md's "Entry grammar" line -- the template is the prose
@@ -76,8 +90,8 @@ readonly JOURNAL_TEMPLATE_BASENAME="_JOURNAL_TEMPLATE_.md"
 readonly JOURNAL_CATEGORIES=(action finding decision thought blocker handoff correction)
 
 # A `correction` entry (ledger 00422 N3) names the entry it corrects in its
-# REF: HH:MM for an entry in today's day-file, or YY-MM-DD/HH:MM for one in an
-# earlier day-file of the same plan. The entry must exist when it is named.
+# REF: HH:MM for an entry stamped today, or YY-MM-DD/HH:MM for one on an
+# earlier day of the same plan. The entry must exist when it is named.
 readonly JOURNAL_CORRECTION_CATEGORY="correction"
 readonly JOURNAL_CORRECTION_REF_PATTERN='^(([0-9]{2}-[0-9]{2}-[0-9]{2})/)?([0-9]{2}:[0-9]{2})$'
 
@@ -96,6 +110,7 @@ usage() {
     cat >&2 <<'USAGE'
 Usage: mkplan.bash "descriptive-kebab-name"
        mkplan.bash --journal <plan-number> <category> <body-file> [--ref R] [--title T]
+       mkplan.bash --resolve-conflict <day-file>
 
 Creates the next sequentially-numbered plan folder (in this script's own
 directory, or $MKPLAN_PLAN_DIR if set) and scaffolds its PLAN.md.
@@ -118,7 +133,7 @@ USAGE
     journal_usage
 }
 
-# Release the plan-dir lock. Only removes the lock if THIS process took it
+# Release the scaffold lock. Only removes the lock if THIS process took it
 # (lock_held set) and the dir is still present — never another runner's lock.
 release_lock() {
     if [[ -n "$lock_held" && -d "$lock_held" ]]; then
@@ -126,7 +141,31 @@ release_lock() {
     fi
 }
 
-# Acquire an exclusive lock on the plan dir via atomic `mkdir`. Portable
+# True (0) iff $1 is a single line, starts with a slash, and names an existing
+# directory.
+is_usable_git_dir() {
+    local candidate="$1"
+    [[ "${candidate:0:1}" == "/" ]] || return 1
+    [[ "$candidate" != *$'\n'* ]] || return 1
+    [[ -d "$candidate" ]]
+}
+
+# Print the directory the scaffold lock lives in: the repository's common git
+# dir when git answers with exactly one absolute path naming an existing
+# directory, else the plan dir. Old git does not know the path-format option,
+# echoes it back and exits 0, so the exit status alone proves nothing about
+# the answer.
+scaffold_lock_dir() {
+    local plan_dir="$1" answer
+    if answer="$(git -C "$plan_dir" rev-parse --path-format=absolute --git-common-dir)" \
+        && is_usable_git_dir "$answer"; then
+        printf '%s/%s\n' "$answer" "$COMMON_DIR_LOCK_BASENAME"
+    else
+        printf '%s/%s\n' "$plan_dir" "$LOCK_BASENAME"
+    fi
+}
+
+# Acquire an exclusive lock via atomic `mkdir`. Portable
 # (Linux + macOS/BSD, no `flock` dependency) and silent: mkdir's stderr is
 # captured (2>&1 into a var, NOT discarded) and only surfaced if we time out.
 acquire_lock() {
@@ -144,26 +183,41 @@ acquire_lock() {
     trap release_lock EXIT INT TERM
 }
 
-# Highest existing plan number on disk. Mirrors the daemon's scan:
-#   - direct numbered children of CLAUDE/Plan/      (NNNNN-name/)
-#   - one level inside non-numbered subdirs         (Completed/NNNNN-name/, archive/...)
-# Pattern requires a letter after the hyphen so date dirs (2026-06-19) are ignored.
-# Dotfiles (e.g. the .mkplan.lock dir) are not matched by the unquoted-* globs.
-filesystem_highest() {
-    local plan_dir="$1"
-    local highest=0 dir base num
-    shopt -s nullglob
-    for dir in "$plan_dir"/*/ "$plan_dir"/*/*/; do
-        base="$(basename "$dir")"
+# Walk one directory for filesystem_highest, recursing into every folder that is not
+# itself a plan. Sets the global `scan_highest_result`. Callers own the glob
+# options (nullglob, dotglob).
+scan_plan_tree() {
+    local dir="$1" entry base num
+    for entry in "$dir"/*/; do
+        entry="${entry%/}"
+        base="${entry##*/}"
         if [[ "$base" =~ ^([0-9]{1,5})-[a-zA-Z] ]]; then
+            # A numbered folder is a plan: it holds its number and is not searched.
             num=$((10#${BASH_REMATCH[1]}))
-            if (( num > highest )); then
-                highest=$num
+            if (( num > scan_highest_result )); then
+                scan_highest_result=$num
             fi
+        else
+            scan_plan_tree "$entry"
         fi
     done
-    shopt -u nullglob
-    printf '%d' "$highest"
+}
+
+# Highest existing plan number on disk. The same single rule as the daemon's
+# highest_plan_number (handlers/utils/plan_numbering.py), pinned by
+# tests/unit/scripts/test_mkplan_scan_depth_parity.py:
+#   - a folder named NNNNN-name holds that number and is NOT searched further
+#   - every other folder (Completed/, Completed/2025/, archive/, ...) is searched,
+#     at any depth, dot-prefixed folders included
+# Pattern requires a letter after the hyphen so date dirs (2026-06-19) are not
+# read as plan 2026; they are searched like any other organisational folder.
+filesystem_highest() {
+    local plan_dir="$1"
+    scan_highest_result=0
+    shopt -s nullglob dotglob
+    scan_plan_tree "$plan_dir"
+    shopt -u nullglob dotglob
+    printf '%d' "$scan_highest_result"
 }
 
 # Plan folders in the plan ROOT only -- the same set the dedupe scout is told
@@ -221,13 +275,13 @@ journal_usage() {
     cat >&2 <<'USAGE'
 Usage: mkplan.bash --journal <plan-number> <category> <body-file> [--ref R] [--title T]
 
-Appends one entry to today's JOURNAL/ day-file for an existing plan. The
-script reads the clock itself (UTC) -- it never accepts a time from the
-caller. Never rewrites: the day-file is created from _JOURNAL_TEMPLATE_.md
-when absent, then the entry is appended.
+Adds one entry to an existing plan's JOURNAL/ as its own new file,
+JOURNAL/YYYY-MM-DD/HHMMSSZ-<category>-<hex>.md. The script reads the clock
+itself (UTC) -- it never accepts a time from the caller. It never opens an
+existing file, so two branches that journal the same day cannot conflict.
 
 This is THE way to add a journal entry. The hooks daemon denies an entry
-written by hand (Edit, Write, a heredoc or a redirect into a day-file),
+written by hand (Edit, Write, a heredoc or a redirect into JOURNAL/),
 because a hand-typed time can be wrong and an append-only journal cannot
 correct it until the clock has passed the wrong time.
 
@@ -241,8 +295,9 @@ Options:
   --ref R      Optional task/phase reference (e.g. T2.1, P1). Defaults to
                the grammar's "no ref" marker (an em dash). REQUIRED for a
                correction, where it names the entry being corrected: HH:MM
-               for an entry in today's day-file, or YY-MM-DD/HH:MM for one
-               in an earlier day-file. That entry must exist. The corrected
+               for an entry stamped today, or YY-MM-DD/HH:MM for one on an
+               earlier day (in its entry folder or a legacy day-file). That
+               entry must exist. The corrected
                entry is never edited or moved.
   --title T    Optional short title appended to the heading.
 
@@ -272,6 +327,33 @@ _journal_has_entry_at() {
         }
         END { exit found ? 0 : 1 }
     ' "$dayfile"
+}
+
+# True (0) iff a journal entry stamped HH:MM exists for the day YY-MM-DD: in
+# that day's legacy day-file, or in any file of that day's entry folder.
+_journal_day_has_entry_at() {
+    local journal_dir="$1" padded_number="$2" day_yy="$3" entry_time="$4"
+    local entry_file
+    _journal_has_entry_at "$journal_dir/$padded_number-Journal-$day_yy.md" "$entry_time" && return 0
+    for entry_file in "$journal_dir/20$day_yy"/*.md; do
+        [[ -f "$entry_file" ]] || continue
+        _journal_has_entry_at "$entry_file" "$entry_time" && return 0
+    done
+    return 1
+}
+
+# Write ONE new journal entry file and print its path (Plan 00543).
+#   $1 journal dir   $2 YYYY-MM-DD   $3 HHMMSS   $4 category   $5 entry text
+# Layout: JOURNAL/YYYY-MM-DD/HHMMSSZ-<category>-<6 hex>.md. The file is created
+# with noclobber, so a name collision fails loudly and never overwrites.
+_write_journal_entry() {
+    local journal_dir="$1" entry_ymd="$2" entry_hms="$3" category="$4" text="$5"
+    local day_dir="$journal_dir/$entry_ymd" suffix entry_file
+    mkdir -p "$day_dir" || return 1
+    suffix="$(od -An -N3 -tx1 /dev/urandom | tr -d ' \n')" || return 1
+    entry_file="$day_dir/${entry_hms}Z-$category-$suffix.md"
+    ( set -o noclobber; printf '%s\n' "$text" > "$entry_file" ) || return 1
+    printf '%s\n' "$entry_file"
 }
 
 # Append one journal entry to an existing plan's JOURNAL/, per Plan 00427
@@ -324,7 +406,7 @@ run_journal_mode() {
     local corrected_day="" corrected_time=""
     if [[ "$category" == "$JOURNAL_CORRECTION_CATEGORY" ]]; then
         if [[ ! "$ref" =~ $JOURNAL_CORRECTION_REF_PATTERN ]]; then
-            die "a correction needs --ref naming the entry it corrects: HH:MM in today's day-file, or YY-MM-DD/HH:MM in an earlier one (got '$ref')"
+            die "a correction needs --ref naming the entry it corrects: HH:MM for an entry stamped today, or YY-MM-DD/HH:MM for one on an earlier day (got '$ref')"
         fi
         corrected_day="${BASH_REMATCH[2]}"
         corrected_time="${BASH_REMATCH[3]}"
@@ -375,66 +457,234 @@ run_journal_mode() {
 
     # Read the clock ITSELF, normalised to UTC (D2, D3) -- the caller never
     # supplies a time, so a two-writer cross-zone pair stays consistent. A
-    # SINGLE `date` call produces both fields so a midnight-UTC straddle can't
-    # pair a pre-boundary day with a post-boundary time (or vice versa) --
-    # two separate calls could otherwise write e.g. a "## 00:00" entry into
-    # the PREVIOUS day's file.
-    local journal_stamp journal_day journal_time
-    journal_stamp="$(date -u +%y-%m-%d' '%H:%M)"
-    journal_day="${journal_stamp%% *}"
-    journal_time="${journal_stamp##* }"
-
-    local journal_file="$journal_dir/$padded_number-Journal-$journal_day.md"
+    # SINGLE `date` call produces the folder date and the time so a
+    # midnight-UTC straddle can't pair a pre-boundary day with a post-boundary
+    # time (or vice versa).
+    local journal_stamp journal_ymd journal_hms journal_day journal_time
+    journal_stamp="$(date -u +%Y-%m-%d' '%H%M%S)"
+    journal_ymd="${journal_stamp%% *}"
+    journal_hms="${journal_stamp##* }"
+    journal_day="${journal_ymd:2}"
+    journal_time="${journal_hms:0:2}:${journal_hms:2:2}"
 
     # A correction's named entry is checked before anything is written, so a
     # dangling reference writes nothing (D5).
     if [[ -n "$corrected_time" ]]; then
-        local corrected_file="$journal_dir/$padded_number-Journal-${corrected_day:-$journal_day}.md"
-        if ! _journal_has_entry_at "$corrected_file" "$corrected_time"; then
-            die "--ref $ref names no entry: there is no '## $corrected_time' entry in ${corrected_file#"$repo_root"/}"
+        local corrected_yy="${corrected_day:-$journal_day}"
+        if ! _journal_day_has_entry_at "$journal_dir" "$padded_number" "$corrected_yy" "$corrected_time"; then
+            die "--ref $ref names no entry: there is no '## $corrected_time' entry for $corrected_yy in ${journal_dir#"$repo_root"/}"
         fi
     fi
 
     # --- validation complete; every mutation below this line -----------
 
-    mkdir -p "$journal_dir" || die "could not create journal folder: $journal_dir"
-
-    if [[ ! -f "$journal_file" ]]; then
-        local folder_name plan_title owner journal_body
-        folder_name="$(basename "$plan_folder")"
-        plan_title="${folder_name#*-}"
-        plan_title="${plan_title//-/ }"
-        if ! owner="$(git -C "$repo_root" config user.name)" || [[ -z "$owner" ]]; then
-            owner="Unknown"
-        fi
-        if ! journal_body="$(cat "$journal_template_file")"; then
-            die "could not read journal template '$journal_template_file'"
-        fi
-        # The template ends with a seeded `## {{TIME}} · action` entry that
-        # records plan CREATION. A day-file opened here is not a creation, so
-        # only the preamble above that entry is kept (Plan 00461).
-        journal_body="${journal_body%%$'\n'"## {{TIME}}"*}"
-        journal_body="${journal_body%$'\n'}"
-        journal_body="${journal_body//\{\{PLAN_NUMBER\}\}/$padded_number}"
-        journal_body="${journal_body//\{\{PLAN_TITLE\}\}/$plan_title}"
-        journal_body="${journal_body//\{\{DATE\}\}/$journal_day}"
-        journal_body="${journal_body//\{\{TIME\}\}/$journal_time}"
-        journal_body="${journal_body//\{\{OWNER\}\}/$owner}"
-        printf '%s\n' "$journal_body" > "$journal_file"
-    fi
-
-    # Append-only (D4): the block below only ever adds bytes at the bottom.
+    # One NEW file per entry (Plan 00543): an existing journal file is never
+    # opened, so two branches journalling the same plan on the same day add
+    # different files and merge without a conflict.
     local heading="## $journal_time · $category · $ref"
     if [[ -n "$entry_title" ]]; then
         heading="$heading   — $entry_title"
     fi
-    {
-        printf '\n%s\n\n' "$heading"
-        printf '%s\n' "$body"
-    } >> "$journal_file"
+    local journal_file
+    journal_file="$(_write_journal_entry "$journal_dir" "$journal_ymd" "$journal_hms" "$category" "$heading"$'\n\n'"$body")" \
+        || die "could not write a journal entry under $journal_dir"
 
-    printf 'mkplan: appended a %s entry to %s\n' "$category" "${journal_file#"$repo_root"/}" >&2
+    printf 'mkplan: wrote a %s entry to %s\n' "$category" "${journal_file#"$repo_root"/}" >&2
     printf '%s\n' "$journal_file"
+}
+
+resolve_conflict_usage() {
+    cat >&2 <<'USAGE'
+Usage: mkplan.bash --resolve-conflict <day-file>
+
+Resolves a merge conflict in a plan JOURNAL/ day-file by writing the UNION of
+both sides: the header once, every entry exactly once (byte-identical entries
+are merged), ordered by time with ours first on equal stamps. The result is
+staged with `git add`. Entries keep their original time and day.
+
+Reads the index stages (`git show :2:` ours, `:3:` theirs), or the conflict
+markers in the working file when the index holds no stages. Refuses, writing
+nothing, when the path is not a day-file, holds no conflict, has only one side,
+or when either side cannot be read as a header followed by `## HH:MM` entries.
+
+Use this instead of `git checkout --ours/--theirs`, which discards the other
+side's entries, and instead of editing the day-file by hand.
+USAGE
+}
+
+# Split a day-file carrying conflict markers into the two sides: $2 receives
+# everything outside a hunk plus each hunk's first (HEAD) side, $3 the same with
+# each hunk's second side. A diff3 base section is dropped. Prints the number of
+# hunks on stdout; an unterminated or out-of-order hunk is an error.
+_journal_split_markers() {
+    awk -v ours_path="$2" -v theirs_path="$3" '
+        BEGIN { state = 0; hunks = 0; printf "" > ours_path; printf "" > theirs_path }
+        function bad(why) {
+            printf "mkplan: error: malformed conflict markers at line %d: %s\n", NR, why > "/dev/stderr"
+            failed = 1; exit 2
+        }
+        /^<<<<<<<( |$)/ { if (state != 0) bad("nested hunk"); state = 1; hunks++; next }
+        /^\|\|\|\|\|\|\|( |$)/ { if (state != 1) bad("base marker outside a hunk side"); state = 2; next }
+        /^=======$/ { if (state != 1 && state != 2) bad("separator outside a hunk"); state = 3; next }
+        /^>>>>>>>( |$)/ { if (state != 3) bad("closing marker without a separator"); state = 0; next }
+        {
+            if (state == 0 || state == 1) print > ours_path
+            if (state == 0 || state == 3) print > theirs_path
+        }
+        END {
+            if (failed) exit 2
+            if (state != 0) { print "mkplan: error: a conflict hunk is never closed" > "/dev/stderr"; exit 2 }
+            print hunks
+        }
+    ' "$1"
+}
+
+# Print the union of two day-file sides ($1 ours, $2 theirs): the header once,
+# then each entry once, in time order (ties keep ours first). Exits 2 with a
+# message when either side cannot be read as a header plus entries -- an
+# unclosed fence, a `## ` heading that is no entry, no header, or headers that
+# differ -- because dropping what cannot be placed is the loss this mode exists
+# to prevent. An entry is delimited as the daemon's journal parser does: a
+# `## HH:MM` heading outside a fenced block runs to the next one.
+_journal_union() {
+    awk '
+        function fail(why) {
+            printf "mkplan: error: %s\n", why > "/dev/stderr"
+            failed = 1; exit 2
+        }
+        function add_line(line) {
+            if (line ~ /^[[:space:]]*$/) {
+                if (has) pend = pend "\n" line
+                return
+            }
+            cur = has ? cur pend "\n" line : line
+            has = 1; pend = ""
+        }
+        function close_block() {
+            if (has) {
+                if (kind == "pre") { pre[side] = cur }
+                else { n++; etext[n] = cur; etime[n] = substr(cur, 4, 5) }
+            }
+            cur = ""; has = 0; pend = ""
+        }
+        function side_name() { return side == 1 ? "ours" : "theirs" }
+        function finish_side() {
+            close_block()
+            if (in_fence) fail("the " side_name() " side has an unclosed code fence, so its entries cannot be told apart")
+            if (pre[side] == "") fail("the " side_name() " side has no header text above its first entry")
+        }
+        FNR == 1 {
+            if (NR > 1) finish_side()
+            side++; in_fence = 0; kind = "pre"; cur = ""; has = 0; pend = ""
+        }
+        {
+            line = $0
+            if (match(line, /^[[:space:]]*(```|~~~)/)) {
+                marker = substr(line, RSTART + RLENGTH - 3, 3)
+                if (!in_fence) { in_fence = 1; fence = marker }
+                else if (marker == fence) { in_fence = 0 }
+                add_line(line)
+                next
+            }
+            if (!in_fence && line ~ /^## /) {
+                if (line ~ /^## [0-9][0-9]:[0-9][0-9]([^0-9A-Za-z_]|$)/) {
+                    close_block(); kind = "entry"; add_line(line)
+                    next
+                }
+                fail("the " side_name() " side has a heading that is not a journal entry: " line)
+            }
+            add_line(line)
+        }
+        END {
+            if (failed) exit 2
+            finish_side()
+            if (side != 2) fail("expected two sides, read " side)
+            if (pre[1] != pre[2]) fail("the two sides have different header text above their entries; resolve that by hand")
+            for (i = 1; i <= n; i++) {
+                if (etext[i] in seen) continue
+                seen[etext[i]] = 1
+                kept[++m] = i
+            }
+            for (a = 2; a <= m; a++) {
+                moving = kept[a]; b = a - 1
+                while (b >= 1 && etime[kept[b]] > etime[moving]) { kept[b + 1] = kept[b]; b-- }
+                kept[b + 1] = moving
+            }
+            print pre[1]
+            for (a = 1; a <= m; a++) { print ""; print etext[kept[a]] }
+        }
+    ' "$1" "$2"
+}
+
+# True (0) iff the index holds stage $2 of path $3 in the repository at $1.
+_journal_has_stage() {
+    git -C "$1" ls-files --unmerged -- "$3" | awk -v stage="$2" '$3 == stage { found = 1 } END { exit found ? 0 : 1 }'
+}
+
+# Resolve a conflicted JOURNAL day-file to the union of both sides, then stage
+# it. Every refusal happens before the day-file is touched. Takes no lock and
+# never touches $COUNTER_KEY, like --journal.
+run_resolve_conflict_mode() {
+    shift # drop the leading --resolve-conflict
+
+    if [[ $# -ne 1 ]]; then
+        resolve_conflict_usage
+        die "--resolve-conflict expects exactly one argument (the day-file), got $#"
+    fi
+
+    local arg="$1" base dir_arg dir abs repo_root rel
+    base="$(basename "$arg")"
+    dir_arg="$(dirname "$arg")"
+    if [[ ! "$base" =~ $JOURNAL_DAYFILE_NAME_PATTERN ]]; then
+        die "not a journal day-file (expected NNNNN-Journal-YY-MM-DD.md inside a $JOURNAL_DIR_BASENAME/ folder): $arg"
+    fi
+    if [[ ! -d "$dir_arg" ]]; then
+        die "day-file not found: $arg"
+    fi
+    dir="$(cd -P "$dir_arg" && pwd)"
+    if [[ "$(basename "$dir")" != "$JOURNAL_DIR_BASENAME" ]]; then
+        die "not a journal day-file (it is not inside a $JOURNAL_DIR_BASENAME/ folder): $arg"
+    fi
+    abs="$dir/$base"
+    if [[ ! -f "$abs" ]]; then
+        die "day-file not found: $arg"
+    fi
+    if ! repo_root="$(git -C "$dir" rev-parse --show-toplevel)"; then
+        die "$dir is not inside a git repository"
+    fi
+    rel="${abs#"$repo_root"/}"
+
+    # Global, not local: the EXIT trap runs after this function has returned.
+    resolve_scratch="$(mktemp -d)"
+    trap 'rm -rf "$resolve_scratch"' EXIT
+    local ours="$resolve_scratch/ours" theirs="$resolve_scratch/theirs" result="$resolve_scratch/result"
+
+    local has_ours=0 has_theirs=0
+    if _journal_has_stage "$repo_root" 2 "$rel"; then has_ours=1; fi
+    if _journal_has_stage "$repo_root" 3 "$rel"; then has_theirs=1; fi
+
+    if (( has_ours && has_theirs )); then
+        git -C "$repo_root" show ":2:$rel" > "$ours" || die "could not read the ours side of $rel"
+        git -C "$repo_root" show ":3:$rel" > "$theirs" || die "could not read the theirs side of $rel"
+    elif (( has_ours || has_theirs )); then
+        die "only one side of the conflict in $rel is present in the index, so there is nothing to union -- decide that case by hand"
+    else
+        local hunks
+        hunks="$(_journal_split_markers "$abs" "$ours" "$theirs")" || exit 1
+        if (( hunks == 0 )); then
+            die "no merge conflict in $rel: the index holds no unmerged stages and the file has no conflict markers"
+        fi
+    fi
+
+    if [[ ! -s "$ours" || ! -s "$theirs" ]]; then
+        die "one side of the conflict in $rel is empty, so there is nothing to union -- decide that case by hand"
+    fi
+
+    _journal_union "$ours" "$theirs" > "$result" || exit 1
+
+    cat "$result" > "$abs" || die "could not write $rel"
+    git -C "$repo_root" add -- "$rel" || die "could not stage $rel"
+    printf 'mkplan: resolved %s to the union of both sides and staged it\n' "$rel" >&2
 }
 
 # --- argument handling -----------------------------------------------------
@@ -446,6 +696,11 @@ fi
 
 if [[ "${1:-}" == "--journal" ]]; then
     run_journal_mode "$@"
+    exit 0
+fi
+
+if [[ "${1:-}" == "--resolve-conflict" ]]; then
+    run_resolve_conflict_mode "$@"
     exit 0
 fi
 
@@ -502,7 +757,7 @@ plan_rel="${plan_dir#"$repo_root"/}"
 
 # Everything from here to the counter write is the critical section: a single
 # atomic-mkdir lock serialises concurrent runners so no two assign the same N.
-acquire_lock "$plan_dir/$LOCK_BASENAME"
+acquire_lock "$(scaffold_lock_dir "$plan_dir")"
 
 fs_highest="$(filesystem_highest "$plan_dir")"
 
@@ -520,25 +775,23 @@ else
     counter="$fs_highest"
 fi
 
-# Drift guard: the git counter is authoritative, but if the filesystem already
-# holds a HIGHER number the counter is stale and counter+1 would collide or
-# mis-order. Refuse and tell the user how to reconcile.
+# Drift guard: the counter lives in each clone's local git config, so a clone
+# can lag the plan folders it holds (plans pulled from elsewhere). The disk is
+# the truth about which numbers are taken: advance the counter to it rather
+# than refuse, and allocate the number after it. The advanced value is written
+# with the new plan below, like any other allocation.
 if (( fs_highest > counter )); then
-    die "counter ($counter) is behind the highest plan on disk ($fs_highest). The counter is stale; reconcile with: git -C '$repo_root' config --local $COUNTER_KEY $fs_highest"
+    printf 'mkplan: counter (%s) is behind the highest plan on disk (%s); advancing it\n' \
+        "$counter" "$fs_highest" >&2
+    counter="$fs_highest"
 fi
 
 next=$((counter + 1))
 printf -v padded '%0*d' "$NUMBER_WIDTH" "$next"
 
-# Collision guard: nothing on disk may already carry this number (active or
-# archived). filesystem_highest already covers the common case, but check the
-# concrete number explicitly for a precise error.
-shopt -s nullglob
-existing=( "$plan_dir/$padded-"*/ "$plan_dir"/*/"$padded-"*/ )
-shopt -u nullglob
-if (( ${#existing[@]} > 0 )); then
-    die "plan number $padded already exists on disk: ${existing[0]}"
-fi
+# No separate collision scan: the counter is at least filesystem_highest (above),
+# so $next is above every number the one shared scan rule can find. A second
+# scan with a different rule would refuse numbers the daemon considers free.
 
 target="$plan_dir/$padded-$name"
 if [[ -e "$target" ]]; then
@@ -612,7 +865,7 @@ cat > "$plan_file" <<PLAN
 
 <!-- Curated milestones + delivery commit hashes only (git is the SSoT for
      "when" — do not add dates). The blow-by-blow activity log lives in
-     JOURNAL/$padded-Journal-YY-MM-DD.md — see CLAUDE/PlanJournalling.md. -->
+     JOURNAL/YYYY-MM-DD/<entry>.md — see CLAUDE/PlanJournalling.md. -->
 
 - <!-- milestone or delivery commit hash -->
 PLAN
@@ -620,9 +873,9 @@ fi
 
 # --- scaffold the plan JOURNAL/ (Plan 00163) -------------------------------
 
-# First-class plan journalling: a JOURNAL/ subfolder of per-day, append-only
-# files NNNNN-Journal-YY-MM-DD.md — the linear activity log complementary to
-# PLAN.md. Gated on a project-owned _JOURNAL_TEMPLATE_.md whose presence is the
+# First-class plan journalling: a JOURNAL/ subfolder of per-day folders holding
+# one append-only file per entry (JOURNAL/YYYY-MM-DD/HHMMSSZ-<category>-<hex>.md)
+# — the linear activity log complementary to PLAN.md. Gated on a project-owned _JOURNAL_TEMPLATE_.md whose presence is the
 # "this project journals" marker, so non-journalling projects get clean plans.
 # Written with bash (mkdir / cat), not the Write tool — same reason as PLAN.md.
 # (JOURNAL_DIR_BASENAME / JOURNAL_TEMPLATE_BASENAME are declared once, near
@@ -633,25 +886,30 @@ if [[ -f "$journal_template_file" ]]; then
     if ! mkdir "$journal_dir"; then
         die "could not create journal folder '$journal_dir'"
     fi
-    # UTC, not local (Plan 00427 D3): every day-file's sentinel promises UTC
-    # timestamps, including this scaffolder-written seed entry.
-    # ONE invocation for both fields: two calls can straddle midnight UTC, and
-    # the day names the FILE while the time stamps the ENTRY — so a straddle
-    # writes a `## 00:00` entry into the previous day's file, which
-    # journal-entry-ordering and journal-entry-future-dated then flag.
-    journal_stamp="$(date -u +%y-%m-%d' '%H:%M)"
-    journal_day="${journal_stamp%% *}"
-    journal_time="${journal_stamp##* }"
-    journal_file="$journal_dir/$padded-Journal-$journal_day.md"
+    # UTC, not local (Plan 00427 D3). ONE `date` call for the folder date and
+    # the time, so a midnight-UTC straddle cannot split them.
+    journal_stamp="$(date -u +%Y-%m-%d' '%H%M%S)"
+    journal_ymd="${journal_stamp%% *}"
+    journal_hms="${journal_stamp##* }"
+    journal_day="${journal_ymd:2}"
+    journal_time="${journal_hms:0:2}:${journal_hms:2:2}"
     if ! journal_body="$(cat "$journal_template_file")"; then
         die "could not read journal template '$journal_template_file'"
     fi
+    # The template's seeded `## {{TIME}} · action` entry records plan CREATION;
+    # it becomes this plan's first entry file (Plan 00543).
+    seed_marker="## {{TIME}}"
+    if [[ "$journal_body" != *"$seed_marker"* ]]; then
+        die "journal template '$journal_template_file' has no seeded '$seed_marker' entry"
+    fi
+    journal_body="$seed_marker${journal_body#*"$seed_marker"}"
     journal_body="${journal_body//\{\{PLAN_NUMBER\}\}/$padded}"
     journal_body="${journal_body//\{\{PLAN_TITLE\}\}/$title}"
     journal_body="${journal_body//\{\{DATE\}\}/$journal_day}"
     journal_body="${journal_body//\{\{TIME\}\}/$journal_time}"
     journal_body="${journal_body//\{\{OWNER\}\}/$owner}"
-    printf '%s\n' "$journal_body" > "$journal_file"
+    _write_journal_entry "$journal_dir" "$journal_ymd" "$journal_hms" action "$journal_body" >/dev/null \
+        || die "could not write the seeded journal entry under '$journal_dir'"
 fi
 
 # --- advance the counter (only after a successful write) -------------------
