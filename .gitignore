@@ -25,3 +25,11 @@ node_modules/
 
 # ClaudeMdInjector backup (session artifact, never commit)
 .CLAUDE.md.pre-inject
+
+# Protected paths whose contents must never be read or committed
+*.secret*
+.vault-pass*
+*.vault-password
+*vault_pass*
+id_rsa
+id_ed25519

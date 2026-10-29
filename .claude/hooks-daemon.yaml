@@ -187,7 +187,9 @@ handlers:
   post_tool_use:
     goal_injection:
       enabled: true
-    lint_on_edit:              # Language-aware lint validation after Write/Edit
+    plan_fact_check_feed:      # Debounces plan edits into one pending fact-check
+      enabled: true
+    lint_on_edit:            # Language-aware lint validation after Write/Edit
       enabled: true            # Automatic lint validation after edits
       priority: 25
 
@@ -268,10 +270,6 @@ handlers:
     working_directory:  # Shows current working directory when different from project root
       enabled: true
       priority: 25
-
-    daemon_stats:   # Developer health line (uptime, memory, log level); upgrade arrow lives in upgrade_notifier
-      enabled: true
-      priority: 30
 
     account_display: # Shows account information
       enabled: true

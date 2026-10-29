@@ -3,5 +3,22 @@
   "references": [
     { "path": "./tsconfig.app.json" },
     { "path": "./tsconfig.node.json" }
+  ],
+  "exclude": [
+    "**/.build",
+    "**/.next",
+    "**/.venv",
+    "**/build",
+    "**/coverage",
+    "**/dist",
+    "**/node_modules",
+    "**/target",
+    "**/third_party",
+    "**/vendor",
+    "**/venv",
+    ".claude/ccy/plugins",
+    "CLAUDE/Plan",
+    "remote-docs",
+    "untracked"
   ]
 }
